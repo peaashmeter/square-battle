@@ -513,11 +513,23 @@ class Player extends Entity {
       }
       var cell =
           cellsNotifier.value.where((c) => c.position == currentPoint).first;
-      if (cell.entity is Player) {
-        (cell.entity as Player).hp -= (bulletMaxDamage - i);
+      if (playerManager.players
+          .where((p) => p.position == currentPoint)
+          .isNotEmpty) {
+        playerManager.players
+            .where((p) => p.position == currentPoint)
+            .first
+            .hp -= (bulletMaxDamage - i);
         break;
-      } else if (cell.entity is Wall) {
-        (cell.entity as Wall).hp -= (bulletMaxDamage - i);
+      } else if (entityManager.entities
+          .whereType<Wall>()
+          .where((p) => p.position == currentPoint)
+          .isNotEmpty) {
+        entityManager.entities
+            .whereType<Wall>()
+            .where((p) => p.position == currentPoint)
+            .first
+            .hp -= (bulletMaxDamage - i);
         break;
       } else {
         cell.team = team;
