@@ -1,12 +1,18 @@
 import 'dart:io';
 import 'dart:math';
 
+import 'dart:ui' as ui;
+
 import 'package:desktop_window/desktop_window.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_battle/bot.dart';
 import 'package:flutter_battle/team.dart';
 import 'package:nyxx/nyxx.dart';
+
+///ключ для скриншотов
+late GlobalKey key;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -74,27 +80,34 @@ class _GameGridState extends State<GameGrid> {
 
   @override
   void initState() {
+    key = GlobalKey();
     super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder(
-        valueListenable: cellsNotifier,
-        builder: (context, List<Cell> cells, child) {
-          return GridView.count(
-              crossAxisCount: 9,
-              children: List.generate(
-                turnManager.getSize() * turnManager.getSize(),
-                (i) => Padding(
-                  padding: const EdgeInsets.all(3.0),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: cells[i].getWidget(),
-                  ),
-                ),
-              ));
-        });
+    return RepaintBoundary(
+      key: key,
+      child: Container(
+        color: Colors.black,
+        child: ValueListenableBuilder(
+            valueListenable: cellsNotifier,
+            builder: (context, List<Cell> cells, child) {
+              return GridView.count(
+                  crossAxisCount: 9,
+                  children: List.generate(
+                    turnManager.getSize() * turnManager.getSize(),
+                    (i) => Padding(
+                      padding: const EdgeInsets.all(3.0),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: cells[i].getWidget(),
+                      ),
+                    ),
+                  ));
+            }),
+      ),
+    );
   }
 }
 
@@ -124,6 +137,10 @@ class TurnManager {
         false) {
       player.isAlive = false;
     }
+
+    if (player.hp < 1) {
+      player.isAlive = false;
+    }
   }
 
   void updateCells([bool isSkip = false]) {
@@ -146,6 +163,10 @@ class TurnManager {
     var cells = List<Cell>.from(cellsNotifier.value);
 
     for (var player in playerManager.players) {
+      //Убираем мертвых
+      entityManager.removeDead();
+      checkIfDead(player);
+
       if (!player.isAlive) {
         continue;
       }
@@ -179,21 +200,28 @@ class TurnManager {
       }
     }
 
+    //
+
     //отрисовка сущностей
     for (var entity in entityManager.entities) {
       var linearPos = entity.position.y * size + entity.position.x;
-      cells[linearPos].entity = entity;
+      if (cells[linearPos].isAlive) {
+        cells[linearPos].entity = entity;
+      }
     }
 
     //отрисовка игроков
     for (var player in playerManager.players) {
       var linearPos = player.position.y * size + player.position.x;
-      cells[linearPos].entity = player;
+
+      if (player.isAlive) {
+        cells[linearPos].entity = player;
+      }
     }
 
-    for (var player in playerManager.players) {
-      checkIfDead(player);
-    }
+    // for (var player in playerManager.players) {
+    //   checkIfDead(player);
+    // }
 
     /*
     игрок 3
@@ -202,6 +230,7 @@ class TurnManager {
     игрок 2 (умер)
     */
 
+    //перерисовка поля здесь
     cellsNotifier.value = cells;
 
     for (var player in playerManager.players) {
@@ -209,6 +238,9 @@ class TurnManager {
     }
 
     playerManager.switchPlayers();
+
+    //в этот момент надо удалить старое сообщение с информацией и прислать новое, чтобы оно всегда было внизу истории сообщений
+    resendGameMessage();
   }
 
   void initGame() {
@@ -235,6 +267,13 @@ class PlayerManager {
     }
     players
         .add(Player(startPositions[team]!, team, startRotations[team]!, user));
+  }
+
+  bool checkIfPlayersReady() {
+    if (players.where((p) => !p.isTurnMade).isNotEmpty) {
+      return false;
+    }
+    return true;
   }
 
   void removePlayer(IUser user) {
@@ -283,6 +322,10 @@ class PlayerManager {
 ///Синглтон, отвечает за все взаимодействия с сущностями (кроме игроков)
 class EntityManager {
   List<Entity> entities = [];
+
+  void removeDead() {
+    entities.whereType<Wall>().where((wall) => wall.hp < 1);
+  }
 }
 
 enum Rotation { left, up, right, down }
@@ -328,6 +371,7 @@ abstract class Entity {
 class Player extends Entity {
   Rotation rotation;
   final IUser user;
+  int hp;
 
   bool isTurnMade;
 
@@ -340,7 +384,10 @@ class Player extends Entity {
   int money = 0;
 
   Player(super.position, super.team, this.rotation, this.user,
-      [this.isTurnMade = false, this.isAlive = true, this.money = 0]);
+      [this.isTurnMade = false,
+      this.isAlive = true,
+      this.money = 0,
+      this.hp = 5]);
 
   int countIncome() {
     var income = cellsNotifier.value
@@ -352,8 +399,7 @@ class Player extends Entity {
   void moveRight() {
     if (position.x + 1 < turnManager.getSize()) {
       var _position = Point(position.x + 1, position.y);
-      var entities =
-          List<Entity>.from(entityManager.entities + playerManager.players);
+      List<Entity> entities = getEntities();
       if (entities.where((e) => e.position == _position).isNotEmpty) {
         return;
       }
@@ -369,8 +415,7 @@ class Player extends Entity {
   void moveLeft() {
     if (position.x != 0) {
       var _position = Point(position.x - 1, position.y);
-      var entities =
-          List<Entity>.from(entityManager.entities + playerManager.players);
+      List<Entity> entities = getEntities();
       if (entities.where((e) => e.position == _position).isNotEmpty) {
         return;
       }
@@ -386,8 +431,7 @@ class Player extends Entity {
   void moveUp() {
     if (position.y != 0) {
       var _position = Point(position.x, position.y - 1);
-      var entities =
-          List<Entity>.from(entityManager.entities + playerManager.players);
+      List<Entity> entities = getEntities();
       if (entities.where((e) => e.position == _position).isNotEmpty) {
         return;
       }
@@ -403,8 +447,7 @@ class Player extends Entity {
   void moveDown() {
     if (position.y + 1 < turnManager.getSize()) {
       var _position = Point(position.x, position.y + 1);
-      var entities =
-          List<Entity>.from(entityManager.entities + playerManager.players);
+      List<Entity> entities = getEntities();
       if (entities.where((e) => e.position == _position).isNotEmpty) {
         return;
       }
@@ -414,6 +457,73 @@ class Player extends Entity {
         return;
       }
       position = _position;
+    }
+  }
+
+  List<Entity> getEntities() {
+    var entities =
+        List<Entity>.from(entityManager.entities + playerManager.players
+          ..where((p) => (p as Player).isAlive));
+    return entities;
+  }
+
+  void shoot() {
+    const shootCost = 6;
+
+    if (money - shootCost < 0) {
+      return;
+    }
+
+    money -= shootCost;
+
+    List<Point<int>> points = [];
+
+    late Point<int> vec;
+
+    switch (rotation) {
+      case Rotation.left:
+        vec = const Point(-1, 0);
+        break;
+      case Rotation.up:
+        vec = const Point(0, -1);
+        break;
+      case Rotation.right:
+        vec = const Point(1, 0);
+        break;
+      case Rotation.down:
+        vec = const Point(0, 1);
+        break;
+    }
+
+    const bulletPathLength = 3;
+    const bulletMaxDamage = 3;
+
+    Point<int> currentPoint = position + vec;
+
+    for (var i = 0; i < bulletPathLength; i++) {
+      if (currentPoint.x < 0 ||
+          currentPoint.x > 8 ||
+          currentPoint.y < 0 ||
+          currentPoint.y > 8 ||
+          cellsNotifier.value
+              .where((c) => c.isAlive)
+              .where((cell) => cell.position == currentPoint)
+              .isEmpty) {
+        break;
+      }
+      var cell =
+          cellsNotifier.value.where((c) => c.position == currentPoint).first;
+      if (cell.entity is Player) {
+        (cell.entity as Player).hp -= (bulletMaxDamage - i);
+        break;
+      } else if (cell.entity is Wall) {
+        (cell.entity as Wall).hp -= (bulletMaxDamage - i);
+        break;
+      } else {
+        cell.team = team;
+
+        currentPoint += vec;
+      }
     }
   }
 
@@ -518,7 +628,7 @@ class Player extends Entity {
 class Wall extends Entity {
   static const cost = 5;
   int hp;
-  Wall(super.position, super.team, [this.hp = 2]);
+  Wall(super.position, super.team, [this.hp = 3]);
 
   @override
   Widget getWidget() {
@@ -582,4 +692,14 @@ class Cell {
       return Colors.black;
     }
   }
+}
+
+Future<File> takeScreenshot() async {
+  RenderRepaintBoundary boundary =
+      key.currentContext?.findRenderObject() as RenderRepaintBoundary;
+
+  ui.Image image = await boundary.toImage();
+  var byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+  var file = await File('turn${turnManager.turn}.png').create();
+  return file.writeAsBytes(byteData!.buffer.asInt8List());
 }

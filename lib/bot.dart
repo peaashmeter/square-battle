@@ -32,7 +32,7 @@ void runBot() {
     ..registerButtonHandler("up", buttonHandler)
     ..registerButtonHandler("rotate_right", buttonHandler)
     ..registerButtonHandler("left", buttonHandler)
-    ..registerButtonHandler("attack", buttonHandler)
+    ..registerButtonHandler("shoot", buttonHandler)
     ..registerButtonHandler("right", buttonHandler)
     ..registerButtonHandler("build", buttonHandler)
     ..registerButtonHandler("down", buttonHandler)
@@ -52,8 +52,8 @@ void runBot() {
             .sendMessage(MessageBuilder.content('Игра уже идет!'));
         return;
       }
-      final msg = await e.message.channel.sendMessage(
-          MessageBuilder.content('Тестирование разноцветных квадратов'));
+      final msg = await e.message.channel.sendMessage(MessageBuilder.content(
+          '${e.message.author.username} начал игру! Выберите цвет, чтобы присоединиться.'));
 
       startMessage = msg;
 
@@ -77,7 +77,7 @@ void runBot() {
           () => msg.createReaction(UnicodeEmoji('🟫')));
       await Future.delayed(const Duration(milliseconds: 500),
           () => msg.createReaction(UnicodeEmoji('⬜')));
-    } else if (e.message.content == "!начать") {
+    } else if (e.message.content == "!start") {
       if (e.message.author.id.id != gameInitiatorId) {
         e.message.channel.sendMessage(
             MessageBuilder.content('Начать игру может только ее создатель!'));
@@ -85,7 +85,7 @@ void runBot() {
       }
       if (!isStartingGame) {
         e.message.channel.sendMessage(MessageBuilder.content(
-            'Напишите !squarebattle, чтобы начать тестирование системы регистрации на игру!'));
+            'Напишите !squarebattle, чтобы запустить регистрацию на участие в игре!'));
         return;
       }
       if (participants.isEmpty) {
@@ -94,12 +94,18 @@ void runBot() {
         return;
       }
 
-      MessageBuilder msg = formatGameMessage();
+      //создаем элементы управления игрой
+      MessageBuilder msg = await createKeyboard();
 
+      //удаляем сообщение о регистраци
+      startMessage?.delete();
+
+      //текущее сообщение, в котором содержится информация и элементы управления
       gameMessage = await e.message.channel.sendMessage(msg);
-      createKeyboard(e.message);
       participants = {};
+
       isStartingGame = false;
+
       turnManager.isPlaying = true;
       turnManager.initGame();
 
@@ -111,8 +117,24 @@ void runBot() {
         return;
       }
       turnManager.updateCells(true);
+    } else if (e.message.content == "!stop") {
+      if (e.message.author.id.id != gameInitiatorId) {
+        e.message.channel.sendMessage(MessageBuilder.content(
+            'Закончить игру может только ее создатель!'));
+        return;
+      }
+
+      cellsNotifier.value =
+          List.generate(81, (i) => Cell(Point(i % 9, i ~/ 9), true));
+
+      turnManager = TurnManager(
+        1,
+      );
+      entityManager = EntityManager();
+      playerManager = PlayerManager();
+      turnManager.isPlaying = false;
     } else if (e.message.content == "!keyboard") {
-      createKeyboard(e.message);
+      createKeyboard();
     }
   });
 
@@ -143,7 +165,7 @@ void runBot() {
         string += '${p.value.formatForMessage()} ${p.key.username}\n';
       }
 
-      string += 'Напишите !начать, чтобы начать игру';
+      string += 'Напишите !start, чтобы начать игру';
 
       msg?.edit(MessageBuilder.content(string));
     } catch (e) {
@@ -181,7 +203,7 @@ void runBot() {
           string += '${p.value.formatForMessage()} ${p.key.username}\n';
         }
 
-        string += 'Напишите !начать, чтобы начать игру';
+        string += 'Напишите !start, чтобы начать игру';
 
         playerManager.addPlayer(user, getTeamByEmoji(emoji.formatForMessage()));
         turnManager.updateCells();
@@ -194,7 +216,7 @@ void runBot() {
   });
 }
 
-MessageBuilder formatGameMessage() {
+String formatGameMessage() {
   var gameMessageString = 'Идет игра: ход ${turnManager.turn}\n';
 
   for (var player in playerManager.players) {
@@ -202,6 +224,8 @@ MessageBuilder formatGameMessage() {
         '${getEmojiByTeam(player.team)} ${player.user.username} | ';
 
     gameMessageString += '🪙 ${player.money}+${player.countIncome()} | ';
+
+    gameMessageString += '❤ ${player.hp} | ';
 
     if (!player.isAlive) {
       gameMessageString += '💀';
@@ -213,8 +237,7 @@ MessageBuilder formatGameMessage() {
     gameMessageString += '\n';
   }
 
-  var msg = MessageBuilder.content(gameMessageString);
-  return msg;
+  return gameMessageString;
 }
 
 Future<void> buttonHandler(IButtonInteractionEvent event) async {
@@ -257,10 +280,13 @@ Future<void> buttonHandler(IButtonInteractionEvent event) async {
       break;
     case 'make_turn':
       player.makeTurn();
-      gameMessage?.edit(formatGameMessage());
+      gameMessage?.edit(await createKeyboard(false));
       break;
     case 'build':
       player.action = player.buildWall;
+      break;
+    case 'shoot':
+      player.action = player.shoot;
       break;
     default:
   }
@@ -277,7 +303,7 @@ const List<String> emojiWhiteList = [
   '⬜'
 ];
 
-void createKeyboard(IMessage message) {
+Future<MessageBuilder> createKeyboard([bool appendScreenshot = true]) async {
   // Create embed with author and footer section.
   var rotateLeftButton = ButtonBuilder(
     '',
@@ -307,7 +333,7 @@ void createKeyboard(IMessage message) {
   )..emoji = UnicodeEmoji('◀');
   var attackButton = ButtonBuilder(
     '',
-    'attack',
+    'shoot',
     ButtonStyle.danger,
   )..emoji = UnicodeEmoji('💥');
   var rightButton = ButtonBuilder(
@@ -358,12 +384,24 @@ void createKeyboard(IMessage message) {
     ..addComponent(skipButton)
     ..addComponent(none2Button);
 
-  final builder = ComponentMessageBuilder()
-    ..content = ' '
+  var msg = ComponentMessageBuilder()
+    ..content = formatGameMessage()
     ..addComponentRow(row1)
     ..addComponentRow(row2)
     ..addComponentRow(row3)
     ..addComponentRow(skipRow);
 
-  message.channel.sendMessage(builder);
+  if (appendScreenshot) {
+    msg.addFileAttachment(await takeScreenshot());
+  }
+
+  return msg;
+}
+
+///Переслать игровое сообщение вниз
+void resendGameMessage() async {
+  var channel = gameMessage?.channel;
+
+  await gameMessage?.delete();
+  gameMessage = await channel?.sendMessage(await createKeyboard());
 }
