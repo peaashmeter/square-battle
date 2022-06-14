@@ -1,12 +1,17 @@
 import 'dart:math';
 
+import 'package:flutter_battle/global.dart';
 import 'package:flutter_battle/main.dart';
+import 'package:flutter_battle/playermanager.dart';
 import 'package:flutter_battle/team.dart';
+import 'package:flutter_battle/turnmanager.dart';
 import 'package:nyxx/nyxx.dart';
 import 'package:nyxx_interactions/nyxx_interactions.dart';
 
+import 'entitymanager.dart';
+
 const token =
-    'OTc1MjA3NjAwNjcxMDMxMzM2.GzoyHL.rJOQfNaHFLe6E9k8VkWdD76GXGYu1dVwJ-4YGQ';
+    'OTc1MjA3NjAwNjcxMDMxMzM2.G79RZp.pyobNHybYRnMV5_5vDXv_Uxe-2-C4UKdax1KMg';
 bool isStartingGame = false;
 IMessage? gameMessage;
 
@@ -132,6 +137,8 @@ void runBot() {
       entityManager = EntityManager();
       playerManager = PlayerManager();
       gameMessage = null;
+
+      isStartingGame = false;
 
       e.message.channel
           .sendMessage(MessageBuilder.content('Игра остановлена!'));
