@@ -19,6 +19,8 @@ void main() async {
 
   if (Platform.isWindows) {
     DesktopWindow.setWindowSize(const Size(512, 512 + 30));
+    DesktopWindow.setMinWindowSize(const Size(512, 512 + 30));
+    DesktopWindow.setMaxWindowSize(const Size(512, 512 + 30));
   }
 
   runBot();
@@ -128,6 +130,7 @@ class TurnManager {
     return turn ~/ 10;
   }
 
+  ///Deprecated
   void checkIfDead(Player player) {
     //проверка на смэрть
     if (cellsNotifier.value
@@ -165,7 +168,7 @@ class TurnManager {
     for (var player in playerManager.players) {
       //Убираем мертвых
       entityManager.removeDead();
-      checkIfDead(player);
+      playerManager.checkIfPlayersDead();
 
       if (!player.isAlive) {
         continue;
@@ -184,6 +187,10 @@ class TurnManager {
         cells[linearPos].team = player.team;
       }
     }
+
+    //проверка на смерть после того, как просчитали ход последнего игрока
+    entityManager.removeDead();
+    playerManager.checkIfPlayersDead();
 
     for (var cell in cells) {
       if (cell.position.x >= getIteration() &&
@@ -218,10 +225,6 @@ class TurnManager {
         cells[linearPos].entity = player;
       }
     }
-
-    // for (var player in playerManager.players) {
-    //   checkIfDead(player);
-    // }
 
     /*
     игрок 3
@@ -274,6 +277,22 @@ class PlayerManager {
       return false;
     }
     return true;
+  }
+
+  void checkIfPlayersDead() {
+    for (var player in players) {
+      if (cellsNotifier.value
+              .where((cell) => cell.position == player.position)
+              .first
+              .isAlive ==
+          false) {
+        player.isAlive = false;
+      }
+
+      if (player.hp < 1) {
+        player.isAlive = false;
+      }
+    }
   }
 
   void removePlayer(IUser user) {
@@ -461,9 +480,8 @@ class Player extends Entity {
   }
 
   List<Entity> getEntities() {
-    var entities =
-        List<Entity>.from(entityManager.entities + playerManager.players
-          ..where((p) => (p as Player).isAlive));
+    var entities = List<Entity>.from(entityManager.entities +
+        playerManager.players.where((p) => p.isAlive).toList());
     return entities;
   }
 
@@ -475,8 +493,6 @@ class Player extends Entity {
     }
 
     money -= shootCost;
-
-    List<Point<int>> points = [];
 
     late Point<int> vec;
 

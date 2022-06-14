@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'dart:math';
 
 import 'package:flutter_battle/main.dart';
@@ -132,7 +131,10 @@ void runBot() {
       );
       entityManager = EntityManager();
       playerManager = PlayerManager();
-      turnManager.isPlaying = false;
+      gameMessage = null;
+
+      e.message.channel
+          .sendMessage(MessageBuilder.content('Игра остановлена!'));
     } else if (e.message.content == "!keyboard") {
       createKeyboard();
     }
