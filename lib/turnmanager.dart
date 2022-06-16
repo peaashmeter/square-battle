@@ -3,14 +3,13 @@ import 'dart:math';
 import 'package:flutter_battle/bot.dart';
 import 'package:flutter_battle/entities.dart';
 import 'package:flutter_battle/global.dart';
-import 'package:nyxx/nyxx.dart';
-
-import 'team.dart';
 
 ///Синглтон, отвечает за механики, основанные на номере хода
 class TurnManager {
   int turn;
   bool isPlaying;
+
+  static const roundLength = 10;
 
   TurnManager(this.turn, [this.isPlaying = false]);
 
@@ -21,7 +20,7 @@ class TurnManager {
   }
 
   int getIteration() {
-    return turn ~/ 10;
+    return (turn ~/ roundLength) > 3 ? 3 : (turn ~/ roundLength);
   }
 
   ///Deprecated
@@ -71,6 +70,7 @@ class TurnManager {
       //считаем деньги
 
       player.money += player.countIncome();
+      player.totalScore += player.countIncome();
       player.action?.call();
       player.rotationAction?.call();
 

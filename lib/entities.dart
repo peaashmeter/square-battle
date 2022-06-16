@@ -51,6 +51,8 @@ class Player extends Entity {
   final IUser user;
   int hp;
 
+  int totalScore;
+
   bool isTurnMade;
 
   ///Если false, то игрок проиграл
@@ -65,7 +67,8 @@ class Player extends Entity {
       [this.isTurnMade = false,
       this.isAlive = true,
       this.money = 0,
-      this.hp = 5]);
+      this.hp = 5,
+      this.totalScore = 0]);
 
   int countIncome() {
     var income = cellsNotifier.value
@@ -322,9 +325,9 @@ class Wall extends Entity {
   Widget getWidget() {
     return Container(
         color: getColorByTeam(team),
-        child: const Icon(
+        child: Icon(
           Icons.close_rounded,
-          size: 48,
+          size: (4 - hp) * 16,
         ));
   }
 }

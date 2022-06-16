@@ -128,17 +128,7 @@ void runBot() {
         return;
       }
 
-      cellsNotifier.value =
-          List.generate(81, (i) => Cell(Point(i % 9, i ~/ 9), true));
-
-      turnManager = TurnManager(
-        1,
-      );
-      entityManager = EntityManager();
-      playerManager = PlayerManager();
-      gameMessage = null;
-
-      isStartingGame = false;
+      setupGame();
 
       e.message.channel
           .sendMessage(MessageBuilder.content('Игра остановлена!'));
@@ -226,7 +216,41 @@ void runBot() {
 }
 
 String formatGameMessage() {
-  var gameMessageString = 'Идет игра: ход ${turnManager.turn}\n';
+  if (turnManager.turn == 50 ||
+      playerManager.players.where((p) => p.isAlive).isEmpty) {
+    var scoreTable = 'Игра закончена! Результаты: \n';
+    var players = List.from(playerManager.players
+      ..sort((p1, p2) {
+        return p1.totalScore.compareTo(p2.totalScore);
+      }));
+    for (var player in players) {
+      scoreTable += '${player.user.username}: ${player.totalScore} очков \n';
+    }
+
+    return scoreTable;
+  }
+  if (playerManager.players.where((p) => p.isAlive).length == 1) {
+    var scoreTable =
+        'Игра закончена! Победитель: ${playerManager.players.where((p) => p.isAlive).first}\nРезультаты: \n';
+    var players = List.from(playerManager.players
+      ..sort((p1, p2) {
+        return p1.totalScore.compareTo(p2.totalScore);
+      }));
+    for (var player in players) {
+      scoreTable += '${player.user.username}: ${player.totalScore} очков \n';
+    }
+
+    return scoreTable;
+  }
+
+  var gameMessageString =
+      'Идет игра: ход ${turnManager.turn}. До уменьшения поля осталось ${TurnManager.roundLength - turnManager.turn % TurnManager.roundLength} ходов';
+  if (TurnManager.roundLength - turnManager.turn % TurnManager.roundLength <=
+      5) {
+    gameMessageString += '⚠';
+  }
+
+  gameMessageString += '\n';
 
   for (var player in playerManager.players) {
     gameMessageString +=
@@ -312,8 +336,8 @@ const List<String> emojiWhiteList = [
   '⬜'
 ];
 
+///Создает сообщение с информацией об игре и элементами управлнения
 Future<MessageBuilder> createKeyboard([bool appendScreenshot = true]) async {
-  // Create embed with author and footer section.
   var rotateLeftButton = ButtonBuilder(
     '',
     'rotate_left',
@@ -393,16 +417,23 @@ Future<MessageBuilder> createKeyboard([bool appendScreenshot = true]) async {
     ..addComponent(skipButton)
     ..addComponent(none2Button);
 
-  var msg = ComponentMessageBuilder()
-    ..content = formatGameMessage()
-    ..addComponentRow(row1)
-    ..addComponentRow(row2)
-    ..addComponentRow(row3)
-    ..addComponentRow(skipRow);
+  var msg = ComponentMessageBuilder()..content = formatGameMessage();
 
   if (appendScreenshot) {
     msg.addFileAttachment(await takeScreenshot());
   }
+
+  if (turnManager.turn == 50 ||
+      playerManager.players.where((p) => p.isAlive).isEmpty ||
+      playerManager.players.where((p) => p.isAlive).length == 1) {
+    return msg;
+  }
+
+  msg
+    ..addComponentRow(row1)
+    ..addComponentRow(row2)
+    ..addComponentRow(row3)
+    ..addComponentRow(skipRow);
 
   return msg;
 }

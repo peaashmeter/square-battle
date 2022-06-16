@@ -65,13 +65,32 @@ class PlayerManager {
     Team.white: Rotation.right,
   };
 
+  static List<int> get nearestPoints {
+    List<int> points = [];
+
+    //восемь точек вокруг клетки самым очевидным способом
+    for (var p in startPositions.values) {
+      points.add(p.x + p.y * 9);
+      points.add(p.x - 1 + p.y * 9);
+      points.add(p.x + 1 + p.y * 9);
+      points.add(p.x + (p.y + 1) * 9);
+      points.add(p.x + (p.y - 1) * 9);
+      points.add(p.x + 1 + (p.y + 1) * 9);
+      points.add(p.x + 1 + (p.y - 1) * 9);
+      points.add(p.x - 1 + (p.y + 1) * 9);
+      points.add(p.x - 1 + (p.y - 1) * 9);
+    }
+
+    return points;
+  }
+
   ///Перемещает мертвых в конец списка, перемешивает живых
   void switchPlayers() {
     List<Player> playersSwitched = [];
     var alivePlayers = players.where((player) => player.isAlive).toList();
     if (alivePlayers.length > 1) {
       playersSwitched.addAll(alivePlayers.getRange(1, alivePlayers.length));
-      playersSwitched.add(players.first);
+      playersSwitched.add(alivePlayers.first);
     } else if (alivePlayers.isNotEmpty) {
       playersSwitched.add(alivePlayers.first);
     }
