@@ -83,10 +83,6 @@ class TurnManager {
       }
     }
 
-    //проверка на смерть после того, как просчитали ход последнего игрока
-    entityManager.removeDead();
-    playerManager.checkIfPlayersDead();
-
     for (var cell in cells) {
       if (cell.position.x >= getIteration() &&
           cell.position.x < 9 - getIteration() &&
@@ -101,6 +97,10 @@ class TurnManager {
         cell.entity = null;
       }
     }
+
+    //проверка на смерть после того, как просчитали ход последнего игрока и мертвые клетки
+    entityManager.removeDead();
+    playerManager.checkIfPlayersDead();
 
     //отрисовка сущностей и игроков
 

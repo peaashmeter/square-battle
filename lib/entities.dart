@@ -193,10 +193,10 @@ class Player extends Entity {
       var cell =
           cellsNotifier.value.where((c) => c.position == currentPoint).first;
       if (playerManager.players
-          .where((p) => p.position == currentPoint)
+          .where((p) => p.position == currentPoint && p.isAlive)
           .isNotEmpty) {
         playerManager.players
-            .where((p) => p.position == currentPoint)
+            .where((p) => p.position == currentPoint && p.isAlive)
             .first
             .hp -= (bulletMaxDamage - i);
         break;
@@ -204,11 +204,17 @@ class Player extends Entity {
           .whereType<Wall>()
           .where((p) => p.position == currentPoint)
           .isNotEmpty) {
-        entityManager.entities
+        var wall = entityManager.entities
             .whereType<Wall>()
             .where((p) => p.position == currentPoint)
-            .first
-            .hp -= (bulletMaxDamage - i);
+            .first;
+
+        if (wall.team == team) {
+          wall.hp - wall.hp;
+        } else {
+          wall.hp -= (bulletMaxDamage - i);
+        }
+
         break;
       } else {
         cell.team = team;

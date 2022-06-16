@@ -231,7 +231,7 @@ String formatGameMessage() {
   }
   if (playerManager.players.where((p) => p.isAlive).length == 1) {
     var scoreTable =
-        'Игра закончена! Победитель: ${playerManager.players.where((p) => p.isAlive).first}\nРезультаты: \n';
+        'Игра закончена! Победитель: ${playerManager.players.where((p) => p.isAlive).first.user.username}\nРезультаты: \n';
     var players = List.from(playerManager.players
       ..sort((p1, p2) {
         return p1.totalScore.compareTo(p2.totalScore);
