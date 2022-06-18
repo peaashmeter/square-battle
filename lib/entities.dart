@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_battle/global.dart';
 import 'package:nyxx/nyxx.dart';
 
+import 'main.dart';
 import 'team.dart';
 
 enum Rotation { left, up, right, down }
@@ -71,20 +72,20 @@ class Player extends Entity {
       this.totalScore = 0]);
 
   int countIncome() {
-    var income = cellsNotifier.value
+    var income = state.cellsNotifier.value
         .where((cell) => cell.team == team && cell.isAlive)
         .length;
     return income;
   }
 
   void moveRight() {
-    if (position.x + 1 < turnManager.getSize()) {
+    if (position.x + 1 < state.turnManager.getSize()) {
       var _position = Point(position.x + 1, position.y);
       List<Entity> entities = getEntities();
       if (entities.where((e) => e.position == _position).isNotEmpty) {
         return;
       }
-      if (cellsNotifier.value
+      if (state.cellsNotifier.value
           .where((c) => !c.isAlive && c.position == _position)
           .isNotEmpty) {
         return;
@@ -100,7 +101,7 @@ class Player extends Entity {
       if (entities.where((e) => e.position == _position).isNotEmpty) {
         return;
       }
-      if (cellsNotifier.value
+      if (state.cellsNotifier.value
           .where((c) => !c.isAlive && c.position == _position)
           .isNotEmpty) {
         return;
@@ -116,7 +117,7 @@ class Player extends Entity {
       if (entities.where((e) => e.position == _position).isNotEmpty) {
         return;
       }
-      if (cellsNotifier.value
+      if (state.cellsNotifier.value
           .where((c) => !c.isAlive && c.position == _position)
           .isNotEmpty) {
         return;
@@ -126,13 +127,13 @@ class Player extends Entity {
   }
 
   void moveDown() {
-    if (position.y + 1 < turnManager.getSize()) {
+    if (position.y + 1 < state.turnManager.getSize()) {
       var _position = Point(position.x, position.y + 1);
       List<Entity> entities = getEntities();
       if (entities.where((e) => e.position == _position).isNotEmpty) {
         return;
       }
-      if (cellsNotifier.value
+      if (state.cellsNotifier.value
           .where((c) => !c.isAlive && c.position == _position)
           .isNotEmpty) {
         return;
@@ -143,8 +144,8 @@ class Player extends Entity {
 
   //Список сущностей, мешающих проходу
   List<Entity> getEntities() {
-    var entities = List<Entity>.from(entityManager.entities +
-        playerManager.players.where((p) => p.isAlive).toList());
+    var entities = List<Entity>.from(state.entityManager.entities +
+        state.playerManager.players.where((p) => p.isAlive).toList());
     return entities;
   }
 
@@ -184,27 +185,28 @@ class Player extends Entity {
           currentPoint.x > 8 ||
           currentPoint.y < 0 ||
           currentPoint.y > 8 ||
-          cellsNotifier.value
+          state.cellsNotifier.value
               .where((c) => c.isAlive)
               .where((cell) => cell.position == currentPoint)
               .isEmpty) {
         break;
       }
-      var cell =
-          cellsNotifier.value.where((c) => c.position == currentPoint).first;
-      if (playerManager.players
+      var cell = state.cellsNotifier.value
+          .where((c) => c.position == currentPoint)
+          .first;
+      if (state.playerManager.players
           .where((p) => p.position == currentPoint && p.isAlive)
           .isNotEmpty) {
-        playerManager.players
+        state.playerManager.players
             .where((p) => p.position == currentPoint && p.isAlive)
             .first
             .hp -= (bulletMaxDamage - i);
         break;
-      } else if (entityManager.entities
+      } else if (state.entityManager.entities
           .whereType<Wall>()
           .where((p) => p.position == currentPoint)
           .isNotEmpty) {
-        var wall = entityManager.entities
+        var wall = state.entityManager.entities
             .whereType<Wall>()
             .where((p) => p.position == currentPoint)
             .first;
@@ -238,6 +240,23 @@ class Player extends Entity {
     rotation = Rotation.values[index];
   }
 
+  void heal() {
+    const healBaseCost = 10;
+
+    if (hp < 5) {
+      if (money - healBaseCost >= 0) {
+        money -= healBaseCost;
+
+        hp++;
+      }
+    } else {
+      if (money - (hp - 4) * 5 + healBaseCost >= 0) {
+        money -= (hp - 4) * 5 + healBaseCost;
+        hp++;
+      }
+    }
+  }
+
   void makeTurn() {
     if (isTurnMade) {
       return;
@@ -245,7 +264,7 @@ class Player extends Entity {
 
     isTurnMade = true;
 
-    turnManager.updateCells();
+    state.turnManager.updateCells();
   }
 
   void buildWall() {
@@ -253,14 +272,14 @@ class Player extends Entity {
     if (targetCellPoint == null) return;
     if (money - Wall.cost < 0) return;
 
-    Cell targetCell = cellsNotifier.value
+    Cell targetCell = state.cellsNotifier.value
         .where((cell) => cell.position == targetCellPoint)
         .first;
 
     if (targetCell.isAlive &&
         targetCell.entity == null &&
         targetCell.team == team) {
-      entityManager.entities.add(Wall(targetCellPoint, team));
+      state.entityManager.entities.add(Wall(targetCellPoint, team));
       money -= Wall.cost;
     }
   }

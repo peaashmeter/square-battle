@@ -5,6 +5,8 @@ import 'package:flutter_battle/global.dart';
 import 'package:flutter_battle/team.dart';
 import 'package:nyxx/nyxx.dart';
 
+import 'main.dart';
+
 ///Синглтон, отвечает за действия игроков
 class PlayerManager {
   List<Player> players = [];
@@ -26,7 +28,7 @@ class PlayerManager {
 
   void checkIfPlayersDead() {
     for (var player in players) {
-      if (cellsNotifier.value
+      if (state.cellsNotifier.value
               .where((cell) => cell.position == player.position)
               .first
               .isAlive ==

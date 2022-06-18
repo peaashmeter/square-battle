@@ -1,8 +1,8 @@
-import 'dart:math';
-
 import 'package:flutter_battle/bot.dart';
 import 'package:flutter_battle/entities.dart';
 import 'package:flutter_battle/global.dart';
+
+import 'main.dart';
 
 ///Синглтон, отвечает за механики, основанные на номере хода
 class TurnManager {
@@ -27,7 +27,7 @@ class TurnManager {
   void checkIfDead(Player player) {
     //проверка на смэрть
 
-    if (cellsNotifier.value
+    if (state.cellsNotifier.value
             .where((cell) => cell.position == player.position)
             .first
             .isAlive ==
@@ -43,7 +43,7 @@ class TurnManager {
   void updateCells([bool isSkip = false]) {
     if (!isSkip) {
       if (isPlaying &&
-          playerManager.players
+          state.playerManager.players
               .where((p) => p.isAlive)
               .where((p2) => !p2.isTurnMade)
               .isNotEmpty) {
@@ -57,12 +57,78 @@ class TurnManager {
 
     var size = getSize();
 
-    var cells = List<Cell>.from(cellsNotifier.value);
+    var cells = List<Cell>.from(state.cellsNotifier.value);
 
-    for (var player in playerManager.players) {
+    handlePlayers(size, cells);
+
+    handleBoardSize(cells);
+
+    //проверка на смерть после того, как просчитали ход последнего игрока и мертвые клетки
+    state.entityManager.removeDead();
+    state.playerManager.checkIfPlayersDead();
+
+    //отрисовка сущностей и игроков
+    handleCells(cells);
+
+    //перерисовка поля здесь
+    state.cellsNotifier.value = cells;
+
+    for (var player in state.playerManager.players) {
+      player.isTurnMade = false;
+    }
+
+    state.playerManager.switchPlayers();
+
+    //в этот момент надо удалить старое сообщение с информацией и прислать новое, чтобы оно всегда было внизу истории сообщений
+    resendGameMessage();
+  }
+
+  void handleCells(List<Cell> cells) {
+    for (var cell in cells) {
+      if (!cell.isAlive) {
+        continue;
+      }
+
+      if (state.playerManager.players
+          .where((p) => p.position == cell.position && p.isAlive)
+          .isNotEmpty) {
+        cell.entity = state.playerManager.players
+            .where((p) => p.position == cell.position && p.isAlive)
+            .first;
+      } else if (state.entityManager.entities
+          .where((e) => e.position == cell.position)
+          .isNotEmpty) {
+        cell.entity = state.entityManager.entities
+            .where((e) => e.position == cell.position)
+            .first;
+      } else {
+        cell.entity = null;
+      }
+    }
+  }
+
+  void handleBoardSize(List<Cell> cells) {
+    for (var cell in cells) {
+      if (cell.position.x >= getIteration() &&
+          cell.position.x < 9 - getIteration() &&
+          cell.position.y >= getIteration() &&
+          cell.position.y < 9 - getIteration()) {
+      } else {
+        cell.isAlive = false;
+      }
+
+      //фикс кринжа с отображением
+      if (cell.entity is Player) {
+        cell.entity = null;
+      }
+    }
+  }
+
+  void handlePlayers(int size, List<Cell> cells) {
+    for (var player in state.playerManager.players) {
       //Убираем мертвых
-      entityManager.removeDead();
-      playerManager.checkIfPlayersDead();
+      state.entityManager.removeDead();
+      state.playerManager.checkIfPlayersDead();
 
       if (!player.isAlive) {
         continue;
@@ -82,89 +148,18 @@ class TurnManager {
         cells[linearPos].team = player.team;
       }
     }
-
-    for (var cell in cells) {
-      if (cell.position.x >= getIteration() &&
-          cell.position.x < 9 - getIteration() &&
-          cell.position.y >= getIteration() &&
-          cell.position.y < 9 - getIteration()) {
-      } else {
-        cell.isAlive = false;
-      }
-
-      //фикс кринжа с отображением
-      if (cell.entity is Player) {
-        cell.entity = null;
-      }
-    }
-
-    //проверка на смерть после того, как просчитали ход последнего игрока и мертвые клетки
-    entityManager.removeDead();
-    playerManager.checkIfPlayersDead();
-
-    //отрисовка сущностей и игроков
-
-    for (var cell in cells) {
-      if (!cell.isAlive) {
-        continue;
-      }
-
-      if (playerManager.players
-          .where((p) => p.position == cell.position && p.isAlive)
-          .isNotEmpty) {
-        cell.entity = playerManager.players
-            .where((p) => p.position == cell.position && p.isAlive)
-            .first;
-      } else if (entityManager.entities
-          .where((e) => e.position == cell.position)
-          .isNotEmpty) {
-        cell.entity = entityManager.entities
-            .where((e) => e.position == cell.position)
-            .first;
-      } else {
-        cell.entity = null;
-      }
-
-      // //отрисовка игроков
-      // for (var player in playerManager.players) {
-      //   var linearPos = player.position.y * size + player.position.x;
-
-      //   if (player.isAlive) {
-      //     cells[linearPos].entity = player;
-      //   }
-      // }
-    }
-
-    /*
-    игрок 3
-    игрок 4
-    игрок 1
-    игрок 2 (умер)
-    */
-
-    //перерисовка поля здесь
-    cellsNotifier.value = cells;
-
-    for (var player in playerManager.players) {
-      player.isTurnMade = false;
-    }
-
-    playerManager.switchPlayers();
-
-    //в этот момент надо удалить старое сообщение с информацией и прислать новое, чтобы оно всегда было внизу истории сообщений
-    resendGameMessage();
   }
 
   void initGame() {
     var size = getSize();
-    var cells = List<Cell>.from(cellsNotifier.value);
+    var cells = List<Cell>.from(state.cellsNotifier.value);
 
-    for (var player in playerManager.players) {
+    for (var player in state.playerManager.players) {
       var linearPos = player.position.y * size + player.position.x;
       cells[linearPos].entity = player;
 
       cells[linearPos].team = player.team;
     }
-    cellsNotifier.value = cells;
+    state.cellsNotifier.value = cells;
   }
 }

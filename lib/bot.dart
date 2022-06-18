@@ -1,19 +1,16 @@
-import 'dart:math';
-
+import 'package:flutter_battle/entities.dart';
 import 'package:flutter_battle/global.dart';
+
 import 'package:flutter_battle/main.dart';
-import 'package:flutter_battle/playermanager.dart';
+
 import 'package:flutter_battle/team.dart';
 import 'package:flutter_battle/turnmanager.dart';
+
 import 'package:nyxx/nyxx.dart';
 import 'package:nyxx_interactions/nyxx_interactions.dart';
 
-import 'entitymanager.dart';
-
 const token =
     'OTc1MjA3NjAwNjcxMDMxMzM2.G79RZp.pyobNHybYRnMV5_5vDXv_Uxe-2-C4UKdax1KMg';
-bool isStartingGame = false;
-IMessage? gameMessage;
 
 void runBot() {
   final bot =
@@ -40,100 +37,92 @@ void runBot() {
     ..registerButtonHandler("right", buttonHandler)
     ..registerButtonHandler("build", buttonHandler)
     ..registerButtonHandler("down", buttonHandler)
-    ..registerButtonHandler("action", buttonHandler)
+    ..registerButtonHandler("heal", buttonHandler)
     ..registerButtonHandler("make_turn", buttonHandler)
     ..syncOnReady();
   // Listen for message events
   bot.eventsWs.onMessageReceived.listen((e) async {
-    if (e.message.content == "!squarebattle") {
-      if (isStartingGame) {
-        await e.message.channel
-            .sendMessage(MessageBuilder.content('Игра уже начинается!'));
+    try {
+      if (e.message.content == "!squarebattle") {
+        if (state.isStartingGame) {
+          await e.message.channel
+              .sendMessage(MessageBuilder.content('Игра уже начинается!'));
+          return;
+        }
+        if (state.turnManager.isPlaying) {
+          await e.message.channel
+              .sendMessage(MessageBuilder.content('Игра уже идет!'));
+          return;
+        }
+        final msg = await e.message.channel.sendMessage(MessageBuilder.content(
+            '${e.message.author.username} начал игру! Выберите цвет, чтобы присоединиться.'));
+
+        startMessage = msg;
+
+        gameInitiatorId = e.message.author.id.id;
+
+        state.isStartingGame = true;
+        participants = {};
+        await msg.createReaction(UnicodeEmoji('🟥'));
+        await Future.delayed(const Duration(milliseconds: 500),
+            () => msg.createReaction(UnicodeEmoji('🟧')));
+        await Future.delayed(const Duration(milliseconds: 500),
+            () => msg.createReaction(UnicodeEmoji('🟨')));
+        await Future.delayed(const Duration(milliseconds: 500),
+            () => msg.createReaction(UnicodeEmoji('🟩')));
+        await Future.delayed(const Duration(milliseconds: 500),
+            () => msg.createReaction(UnicodeEmoji('🟦')));
+        await Future.delayed(const Duration(milliseconds: 500),
+            () => msg.createReaction(UnicodeEmoji('🟪')));
+        await Future.delayed(const Duration(milliseconds: 500),
+            () => msg.createReaction(UnicodeEmoji('🟫')));
+        await Future.delayed(const Duration(milliseconds: 500),
+            () => msg.createReaction(UnicodeEmoji('⬜')));
+      } else if (e.message.content == "!start") {
+        if (e.message.author.id.id != gameInitiatorId) {
+          e.message.channel.sendMessage(
+              MessageBuilder.content('Начать игру может только ее создатель!'));
+          return;
+        }
+        if (!state.isStartingGame) {
+          e.message.channel.sendMessage(MessageBuilder.content(
+              'Напишите !squarebattle, чтобы запустить регистрацию на участие в игре!'));
+          return;
+        }
+        if (participants.isEmpty) {
+          e.message.channel.sendMessage(
+              MessageBuilder.content('Для игры нужен хотя бы один участник!'));
+          return;
+        }
+
+        //создаем элементы управления игрой
+        participants = await startGame(startMessage, e, participants);
+
         return;
+      } else if (e.message.content == "!skip") {
+        if (e.message.author.id.id != gameInitiatorId) {
+          e.message.channel.sendMessage(MessageBuilder.content(
+              'Пропустить ход может только создатель игры!'));
+          return;
+        }
+        state.turnManager.updateCells(true);
+      } else if (e.message.content == "!stop") {
+        if (e.message.author.id.id != gameInitiatorId) {
+          e.message.channel.sendMessage(MessageBuilder.content(
+              'Закончить игру может только ее создатель!'));
+          return;
+        }
+
+        state.resetGame();
+        participants = {};
+
+        e.message.channel
+            .sendMessage(MessageBuilder.content('Игра остановлена!'));
+      } else if (e.message.content == "!keyboard") {
+        createKeyboard();
       }
-      if (turnManager.isPlaying) {
-        await e.message.channel
-            .sendMessage(MessageBuilder.content('Игра уже идет!'));
-        return;
-      }
-      final msg = await e.message.channel.sendMessage(MessageBuilder.content(
-          '${e.message.author.username} начал игру! Выберите цвет, чтобы присоединиться.'));
-
-      startMessage = msg;
-
-      gameInitiatorId = e.message.author.id.id;
-
-      isStartingGame = true;
-      turnManager.isPlaying = false;
-
-      await msg.createReaction(UnicodeEmoji('🟥'));
-      await Future.delayed(const Duration(milliseconds: 500),
-          () => msg.createReaction(UnicodeEmoji('🟧')));
-      await Future.delayed(const Duration(milliseconds: 500),
-          () => msg.createReaction(UnicodeEmoji('🟨')));
-      await Future.delayed(const Duration(milliseconds: 500),
-          () => msg.createReaction(UnicodeEmoji('🟩')));
-      await Future.delayed(const Duration(milliseconds: 500),
-          () => msg.createReaction(UnicodeEmoji('🟦')));
-      await Future.delayed(const Duration(milliseconds: 500),
-          () => msg.createReaction(UnicodeEmoji('🟪')));
-      await Future.delayed(const Duration(milliseconds: 500),
-          () => msg.createReaction(UnicodeEmoji('🟫')));
-      await Future.delayed(const Duration(milliseconds: 500),
-          () => msg.createReaction(UnicodeEmoji('⬜')));
-    } else if (e.message.content == "!start") {
-      if (e.message.author.id.id != gameInitiatorId) {
-        e.message.channel.sendMessage(
-            MessageBuilder.content('Начать игру может только ее создатель!'));
-        return;
-      }
-      if (!isStartingGame) {
-        e.message.channel.sendMessage(MessageBuilder.content(
-            'Напишите !squarebattle, чтобы запустить регистрацию на участие в игре!'));
-        return;
-      }
-      if (participants.isEmpty) {
-        e.message.channel.sendMessage(
-            MessageBuilder.content('Для игры нужен хотя бы один участник!'));
-        return;
-      }
-
-      //создаем элементы управления игрой
-      MessageBuilder msg = await createKeyboard();
-
-      //удаляем сообщение о регистраци
-      startMessage?.delete();
-
-      //текущее сообщение, в котором содержится информация и элементы управления
-      gameMessage = await e.message.channel.sendMessage(msg);
-      participants = {};
-
-      isStartingGame = false;
-
-      turnManager.isPlaying = true;
-      turnManager.initGame();
-
-      return;
-    } else if (e.message.content == "!skip") {
-      if (e.message.author.id.id != gameInitiatorId) {
-        e.message.channel.sendMessage(MessageBuilder.content(
-            'Пропустить ход может только создатель игры!'));
-        return;
-      }
-      turnManager.updateCells(true);
-    } else if (e.message.content == "!stop") {
-      if (e.message.author.id.id != gameInitiatorId) {
-        e.message.channel.sendMessage(MessageBuilder.content(
-            'Закончить игру может только ее создатель!'));
-        return;
-      }
-
-      setupGame();
-
-      e.message.channel
-          .sendMessage(MessageBuilder.content('Игра остановлена!'));
-    } else if (e.message.content == "!keyboard") {
-      createKeyboard();
+    } catch (e) {
+      print(e);
     }
   });
 
@@ -154,8 +143,8 @@ void runBot() {
           emoji.formatForMessage()) {
         participants.remove(sender);
 
-        playerManager.removePlayer(user);
-        turnManager.updateCells();
+        state.playerManager.removePlayer(user);
+        state.turnManager.updateCells();
       }
 
       var string = 'Тестирование системы регистрации на игру\n\n';
@@ -186,7 +175,7 @@ void runBot() {
 
       var sender = user;
       var emoji = event.emoji;
-      if (!isStartingGame || turnManager.isPlaying) {
+      if (!state.isStartingGame || state.turnManager.isPlaying) {
         return;
       }
       if (!emojiWhiteList.contains(emoji.formatForMessage())) {
@@ -196,7 +185,7 @@ void runBot() {
       if (!participants.values.any((e) => e.toString() == emoji.toString())) {
         participants[sender] = emoji;
 
-        var string = 'Тестирование системы регистрации на игру\n\n';
+        var string = 'Началась регистрация на участие в игре SquareBattle!\n\n';
 
         for (var p in participants.entries) {
           string += '${p.value.formatForMessage()} ${p.key.username}\n';
@@ -204,8 +193,9 @@ void runBot() {
 
         string += 'Напишите !start, чтобы начать игру';
 
-        playerManager.addPlayer(user, getTeamByEmoji(emoji.formatForMessage()));
-        turnManager.updateCells();
+        state.playerManager
+            .addPlayer(user, getTeamByEmoji(emoji.formatForMessage()));
+        state.turnManager.updateCells();
 
         msg?.edit(MessageBuilder.content(string));
       }
@@ -215,11 +205,30 @@ void runBot() {
   });
 }
 
+Future<Map<IUser, IEmoji>> startGame(IMessage? startMessage,
+    IMessageReceivedEvent e, Map<IUser, IEmoji> participants) async {
+  //создаем элементы управления игрой
+  MessageBuilder msg = await createKeyboard();
+
+  //удаляем сообщение о регистраци
+  startMessage?.delete();
+
+  //текущее сообщение, в котором содержится информация и элементы управления
+  state.gameMessage = await e.message.channel.sendMessage(msg);
+  participants = {};
+
+  state.isStartingGame = false;
+
+  state.turnManager.isPlaying = true;
+  state.turnManager.initGame();
+  return participants;
+}
+
 String formatGameMessage() {
-  if (turnManager.turn == 50 ||
-      playerManager.players.where((p) => p.isAlive).isEmpty) {
+  if (state.turnManager.turn == 50 ||
+      state.playerManager.players.where((p) => p.isAlive).isEmpty) {
     var scoreTable = 'Игра закончена! Результаты: \n';
-    var players = List.from(playerManager.players
+    var players = List<Player>.from(state.playerManager.players
       ..sort((p1, p2) {
         return p1.totalScore.compareTo(p2.totalScore);
       }));
@@ -227,32 +236,37 @@ String formatGameMessage() {
       scoreTable += '${player.user.username}: ${player.totalScore} очков \n';
     }
 
+    state.resetGame();
+
     return scoreTable;
   }
-  if (playerManager.players.where((p) => p.isAlive).length == 1) {
+  if (state.playerManager.players.where((p) => p.isAlive).length == 1) {
     var scoreTable =
-        'Игра закончена! Победитель: ${playerManager.players.where((p) => p.isAlive).first.user.username}\nРезультаты: \n';
-    var players = List.from(playerManager.players
+        'Игра закончена! Победитель: ${state.playerManager.players.where((p) => p.isAlive).first.user.username}\nРезультаты: \n';
+    var players = List<Player>.from(state.playerManager.players
       ..sort((p1, p2) {
         return p1.totalScore.compareTo(p2.totalScore);
       }));
     for (var player in players) {
       scoreTable += '${player.user.username}: ${player.totalScore} очков \n';
     }
+
+    state.resetGame();
 
     return scoreTable;
   }
 
   var gameMessageString =
-      'Идет игра: ход ${turnManager.turn}. До уменьшения поля осталось ${TurnManager.roundLength - turnManager.turn % TurnManager.roundLength} ходов';
-  if (TurnManager.roundLength - turnManager.turn % TurnManager.roundLength <=
+      'Идет игра: ход ${state.turnManager.turn}. До уменьшения поля осталось ${TurnManager.roundLength - state.turnManager.turn % TurnManager.roundLength} ходов';
+  if (TurnManager.roundLength -
+          state.turnManager.turn % TurnManager.roundLength <=
       5) {
     gameMessageString += '⚠';
   }
 
   gameMessageString += '\n';
 
-  for (var player in playerManager.players) {
+  for (var player in state.playerManager.players) {
     gameMessageString +=
         '${getEmojiByTeam(player.team)} ${player.user.username} | ';
 
@@ -283,13 +297,13 @@ Future<void> buttonHandler(IButtonInteractionEvent event) async {
   // await event.sendFollowup(MessageBuilder.content(
   //     "${event.interaction.userAuthor?.username} нажал на кнопку ${event.interaction.customId}"));
 
-  if (playerManager.players.where((p) => p.user == user).isEmpty) {
+  if (state.playerManager.players.where((p) => p.user == user).isEmpty) {
     return;
   }
-  if (!turnManager.isPlaying) {
+  if (!state.turnManager.isPlaying) {
     return;
   }
-  var player = playerManager.players.where((p) => p.user == user).first;
+  var player = state.playerManager.players.where((p) => p.user == user).first;
   var action = event.interaction.customId;
 
   switch (action) {
@@ -313,13 +327,16 @@ Future<void> buttonHandler(IButtonInteractionEvent event) async {
       break;
     case 'make_turn':
       player.makeTurn();
-      gameMessage?.edit(await createKeyboard(false));
+      state.gameMessage?.edit(await createKeyboard(false));
       break;
     case 'build':
       player.action = player.buildWall;
       break;
     case 'shoot':
       player.action = player.shoot;
+      break;
+    case 'heal':
+      player.action = player.heal;
       break;
     default:
   }
@@ -392,7 +409,7 @@ Future<MessageBuilder> createKeyboard([bool appendScreenshot = true]) async {
   )..emoji = UnicodeEmoji('🔽');
   var actionButton = ButtonBuilder(
     '',
-    'action',
+    'heal',
     ButtonStyle.secondary,
   )..emoji = UnicodeEmoji('❤');
 
@@ -423,9 +440,9 @@ Future<MessageBuilder> createKeyboard([bool appendScreenshot = true]) async {
     msg.addFileAttachment(await takeScreenshot());
   }
 
-  if (turnManager.turn == 50 ||
-      playerManager.players.where((p) => p.isAlive).isEmpty ||
-      playerManager.players.where((p) => p.isAlive).length == 1) {
+  if (state.turnManager.turn == 50 ||
+      state.playerManager.players.where((p) => p.isAlive).isEmpty ||
+      state.playerManager.players.where((p) => p.isAlive).length == 1) {
     return msg;
   }
 
@@ -440,8 +457,8 @@ Future<MessageBuilder> createKeyboard([bool appendScreenshot = true]) async {
 
 ///Переслать игровое сообщение вниз
 void resendGameMessage() async {
-  var channel = gameMessage?.channel;
+  var channel = state.gameMessage?.channel;
 
-  await gameMessage?.delete();
-  gameMessage = await channel?.sendMessage(await createKeyboard());
+  await state.gameMessage?.delete();
+  state.gameMessage = await channel?.sendMessage(await createKeyboard());
 }

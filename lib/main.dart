@@ -17,6 +17,9 @@ import 'entitymanager.dart';
 ///ключ для скриншотов
 late GlobalKey key;
 
+///состояние игры
+late GameState state;
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -37,8 +40,6 @@ class MyApp extends StatelessWidget {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    setupGame();
-
     return MaterialApp(
       title: 'Flutter Demo',
       debugShowCheckedModeBanner: false,
@@ -67,13 +68,13 @@ class GameGrid extends StatefulWidget {
 }
 
 class _GameGridState extends State<GameGrid> {
-  late List<Cell> cells;
   late Stream turnStream;
   late Player player;
 
   @override
   void initState() {
     key = GlobalKey();
+    state = GameState();
     super.initState();
   }
 
@@ -84,12 +85,13 @@ class _GameGridState extends State<GameGrid> {
       child: Container(
         color: Colors.black,
         child: ValueListenableBuilder(
-            valueListenable: cellsNotifier,
+            valueListenable: state.cellsNotifier,
             builder: (context, List<Cell> cells, child) {
               return GridView.count(
+                  key: GlobalKey(),
                   crossAxisCount: 9,
                   children: List.generate(
-                    turnManager.getSize() * turnManager.getSize(),
+                    state.turnManager.getSize() * state.turnManager.getSize(),
                     (i) => Padding(
                       padding: const EdgeInsets.all(3.0),
                       child: ClipRRect(
@@ -110,40 +112,6 @@ Future<File> takeScreenshot() async {
 
   ui.Image image = await boundary.toImage();
   var byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-  var file = await File('turns/turn${turnManager.turn}.png').create();
+  var file = await File('turns/turn${state.turnManager.turn}.png').create();
   return file.writeAsBytes(byteData!.buffer.asInt8List());
-}
-
-void setupGame() {
-  const numberOfHoles = 4;
-
-  List<int> holes = [];
-
-  //генерируем выбитую точку, пока не сгенерируем допустимую
-  for (var i = 0; i < numberOfHoles; i++) {
-    while (true) {
-      var hole = Random().nextInt(81);
-
-      if (!PlayerManager.nearestPoints.contains(hole)) {
-        holes.add(hole);
-        break;
-      }
-    }
-  }
-
-  cellsNotifier =
-      ValueNotifier(List.generate(81, (i) => Cell(Point(i % 9, i ~/ 9), true)));
-
-  for (var hole in holes) {
-    cellsNotifier.value[hole] = Cell(Point(hole % 9, hole ~/ 9), false);
-  }
-
-  turnManager = TurnManager(
-    1,
-  );
-  entityManager = EntityManager();
-  playerManager = PlayerManager();
-  gameMessage = null;
-
-  isStartingGame = false;
 }
