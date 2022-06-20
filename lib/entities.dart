@@ -348,11 +348,17 @@ class Wall extends Entity {
 
   @override
   Widget getWidget() {
+    xSize ??= 48;
+
     return Container(
         color: getColorByTeam(team),
         child: Icon(
           Icons.close_rounded,
-          size: (4 - hp) * 16,
+          size: (4 - hp) * (48 * xSize! / (512 * 3)),
         ));
+
+    //48 : 512 = x : size
+    //48size = 512x
+    //x = 48size/512
   }
 }

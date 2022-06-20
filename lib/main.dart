@@ -12,14 +12,22 @@ import 'package:flutter_battle/global.dart';
 import 'package:flutter_battle/gui.dart';
 import 'package:flutter_battle/playermanager.dart';
 import 'package:flutter_battle/turnmanager.dart';
+import 'package:screenshot/screenshot.dart';
 
 import 'entitymanager.dart';
 
+import 'package:path_provider/path_provider.dart';
+
 ///ключ для скриншотов
-late GlobalKey key;
+// late GlobalKey key;
+
+late ScreenshotController screenshotController;
 
 ///состояние игры
 late GameState state;
+
+//горизонтальное разрешение экрана для вычисления размера крестика на стене
+late double? xSize;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -49,7 +57,6 @@ class Game extends StatefulWidget {
 class _GameState extends State<Game> {
   @override
   void initState() {
-    // TODO: implement initState
     runBot(widget.token);
     super.initState();
   }
@@ -57,22 +64,18 @@ class _GameState extends State<Game> {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Demo',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // Try running your application with "flutter run". You'll see the
-        // application has a blue toolbar. Then, without quitting the app, try
-        // changing the primarySwatch below to Colors.green and then invoke
-        // "hot reload" (press "r" in the console where you ran "flutter run",
-        // or simply save your changes to "hot reload" in a Flutter IDE).
-        // Notice that the counter didn't reset back to zero; the application
-        // is not restarted.
-        primarySwatch: Colors.blue,
-      ),
-      home: const GameGrid(),
+    xSize = MediaQuery.of(context).size.width;
+    return Scaffold(
+      appBar: Platform.isAndroid
+          ? AppBar(
+              backgroundColor: Colors.blueGrey[900],
+              title: const Text(
+                'SquareBattle',
+                style: TextStyle(color: Colors.white),
+              ),
+            )
+          : null,
+      body: const GameGrid(),
     );
   }
 }
@@ -90,45 +93,62 @@ class _GameGridState extends State<GameGrid> {
 
   @override
   void initState() {
-    key = GlobalKey();
     state = GameState();
+    screenshotController = ScreenshotController();
     super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
-    return RepaintBoundary(
-      key: key,
-      child: Container(
-        color: Colors.black,
-        child: ValueListenableBuilder(
-            valueListenable: state.cellsNotifier,
-            builder: (context, List<Cell> cells, child) {
-              return GridView.count(
-                  key: GlobalKey(),
-                  crossAxisCount: 9,
-                  children: List.generate(
-                    state.turnManager.getSize() * state.turnManager.getSize(),
-                    (i) => Padding(
-                      padding: const EdgeInsets.all(3.0),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: cells[i].getWidget(),
-                      ),
+    return Container(
+      color: Colors.black,
+      child: ValueListenableBuilder(
+          valueListenable: state.cellsNotifier,
+          builder: (context, List<Cell> cells, child) {
+            return Screenshot(
+              controller: screenshotController,
+              child: SizedBox(
+                child: Stack(
+                  children: [
+                    Container(
+                      height: xSize,
+                      color: Colors.black,
                     ),
-                  ));
-            }),
-      ),
+                    GridView.count(
+                        key: GlobalKey(),
+                        crossAxisCount: 9,
+                        children: List.generate(
+                          state.turnManager.getSize() *
+                              state.turnManager.getSize(),
+                          (i) => Padding(
+                            padding: const EdgeInsets.all(3.0),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: cells[i].getWidget(),
+                            ),
+                          ),
+                        )),
+                  ],
+                ),
+              ),
+            );
+          }),
     );
   }
 }
 
 Future<File> takeScreenshot() async {
-  RenderRepaintBoundary boundary =
-      key.currentContext?.findRenderObject() as RenderRepaintBoundary;
+  // RenderRepaintBoundary boundary =
+  //     key.currentContext?.findRenderObject() as RenderRepaintBoundary;
 
-  ui.Image image = await boundary.toImage();
-  var byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-  var file = await File('turns/turn${state.turnManager.turn}.png').create();
-  return file.writeAsBytes(byteData!.buffer.asInt8List());
+  // ui.Image image = await boundary.toImage();
+  // var byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+
+  var directory = await getApplicationDocumentsDirectory();
+  var file = await File('${directory.path}/turn${state.turnManager.turn}.png')
+      .create();
+
+  var bytes = await screenshotController.capture();
+
+  return file.writeAsBytes(bytes!);
 }
