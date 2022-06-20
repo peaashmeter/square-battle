@@ -250,8 +250,8 @@ class Player extends Entity {
         hp++;
       }
     } else {
-      if (money - (hp - 4) * 5 + healBaseCost >= 0) {
-        money -= (hp - 4) * 5 + healBaseCost;
+      if (money - ((hp - 4) * 5 + healBaseCost) >= 0) {
+        money -= ((hp - 4) * 5 + healBaseCost);
         hp++;
       }
     }

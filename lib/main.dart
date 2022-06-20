@@ -9,6 +9,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_battle/bot.dart';
 import 'package:flutter_battle/entities.dart';
 import 'package:flutter_battle/global.dart';
+import 'package:flutter_battle/gui.dart';
 import 'package:flutter_battle/playermanager.dart';
 import 'package:flutter_battle/turnmanager.dart';
 
@@ -29,13 +30,29 @@ void main() async {
     DesktopWindow.setMaxWindowSize(const Size(512, 512 + 30));
   }
 
-  runBot();
+  //
 
-  runApp(const MyApp());
+  runApp(const Menu());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
+class Game extends StatefulWidget {
+  const Game(
+    this.token, {
+    Key? key,
+  }) : super(key: key);
+  final String token;
+
+  @override
+  State<Game> createState() => _GameState();
+}
+
+class _GameState extends State<Game> {
+  @override
+  void initState() {
+    // TODO: implement initState
+    runBot(widget.token);
+    super.initState();
+  }
 
   // This widget is the root of your application.
   @override
