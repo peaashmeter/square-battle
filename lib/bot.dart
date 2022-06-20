@@ -236,8 +236,6 @@ String formatGameMessage() {
       scoreTable += '${player.user.username}: ${player.totalScore} очков \n';
     }
 
-    state.resetGame();
-
     return scoreTable;
   }
   if (state.playerManager.players.where((p) => p.isAlive).length == 1) {
@@ -250,8 +248,6 @@ String formatGameMessage() {
     for (var player in players) {
       scoreTable += '${player.user.username}: ${player.totalScore} очков \n';
     }
-
-    state.resetGame();
 
     return scoreTable;
   }
