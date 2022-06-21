@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+
 import 'package:flutter_battle/entities.dart';
 import 'package:flutter_battle/team.dart';
 

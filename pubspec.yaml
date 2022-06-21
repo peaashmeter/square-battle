@@ -1,5 +1,5 @@
 name: flutter_battle
-description: A new Flutter project.
+description: A multiplayer game for Discord servers.
 
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -41,10 +41,17 @@ dependencies:
   path_provider: ^2.0.11
   screenshot: ^1.2.3
   shared_preferences: ^2.0.15
+  flutter_launcher_icons: ^0.9.3
+  window_size:
+    git:
+      url: https://github.com/google/flutter-desktop-embedding.git
+      path: plugins/window_size
+      ref: 5c51870ced62a00e809ba4b81a846a052d241c9f
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
@@ -52,6 +59,10 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^2.0.0
+
+flutter_icons:
+  android: true
+  image_path: "assets/icon.png"
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

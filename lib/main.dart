@@ -7,6 +7,7 @@ import 'package:flutter_battle/gui.dart';
 
 import 'package:screenshot/screenshot.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:window_size/window_size.dart';
 
 ///ключ для скриншотов
 // late GlobalKey key;
@@ -26,6 +27,8 @@ void main() async {
     DesktopWindow.setWindowSize(const Size(512, 512 + 30));
     DesktopWindow.setMinWindowSize(const Size(512, 512 + 30));
     DesktopWindow.setMaxWindowSize(const Size(512, 512 + 30));
+
+    setWindowTitle('SquareBattle');
   }
 
   //
