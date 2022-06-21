@@ -32,6 +32,7 @@ class _GameState extends State<Game> {
   @override
   Widget build(BuildContext context) {
     xSize = MediaQuery.of(context).size.width;
+
     return Scaffold(
       appBar: Platform.isAndroid
           ? AppBar(

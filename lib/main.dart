@@ -33,10 +33,12 @@ void main() async {
   }
 
   //для no-token версии здесь необходимо указать токен бота на сервере
-  const token =
-      'OTc1MjA3NjAwNjcxMDMxMzM2.G79RZp.pyobNHybYRnMV5_5vDXv_Uxe-2-C4UKdax1KMg';
+  const token = '';
 
-  var prefs = await SharedPreferences.getInstance();
+  //var prefs = await SharedPreferences.getInstance();
 
-  runApp(const Game(token));
+  runApp(const MaterialApp(
+    title: 'SquareBattle – игра для Дискорда',
+    home: Game(token),
+  ));
 }
