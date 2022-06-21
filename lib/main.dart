@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:desktop_window/desktop_window.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_battle/game.dart';
 import 'package:flutter_battle/global.dart';
 import 'package:flutter_battle/gui.dart';
 
@@ -31,9 +32,11 @@ void main() async {
     setWindowTitle('SquareBattle');
   }
 
-  //
+  //для no-token версии здесь необходимо указать токен бота на сервере
+  const token =
+      'OTc1MjA3NjAwNjcxMDMxMzM2.G79RZp.pyobNHybYRnMV5_5vDXv_Uxe-2-C4UKdax1KMg';
 
   var prefs = await SharedPreferences.getInstance();
 
-  runApp(Menu(prefs));
+  runApp(const Game(token));
 }
