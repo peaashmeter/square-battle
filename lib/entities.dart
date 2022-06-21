@@ -1,9 +1,9 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_battle/global.dart';
 import 'package:nyxx/nyxx.dart';
 
+import 'cell.dart';
 import 'main.dart';
 import 'team.dart';
 

@@ -1,5 +1,5 @@
 import 'package:flutter_battle/entities.dart';
-import 'package:flutter_battle/global.dart';
+import 'package:flutter_battle/game.dart';
 
 import 'package:flutter_battle/main.dart';
 
