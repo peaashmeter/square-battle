@@ -1,12 +1,12 @@
-import 'dart:ui';
-
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_battle/main.dart';
+import 'package:flutter_battle/game.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class Menu extends StatelessWidget {
-  const Menu({Key? key}) : super(key: key);
+  final SharedPreferences prefs;
+
+  const Menu(this.prefs, {Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -45,8 +45,8 @@ class Menu extends StatelessWidget {
           color: Colors.blueGrey[900],
           child: Column(
             //mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: const [
-              Expanded(
+            children: [
+              const Expanded(
                 flex: 1,
                 child: Align(
                   child: Text(
@@ -58,7 +58,7 @@ class Menu extends StatelessWidget {
                   ),
                 ),
               ),
-              Expanded(flex: 3, child: MiddlePanel()),
+              Expanded(flex: 3, child: MiddlePanel(prefs)),
             ],
           ),
         ),
@@ -68,7 +68,9 @@ class Menu extends StatelessWidget {
 }
 
 class MiddlePanel extends StatefulWidget {
-  const MiddlePanel({
+  final SharedPreferences prefs;
+  const MiddlePanel(
+    this.prefs, {
     Key? key,
   }) : super(key: key);
 
@@ -81,7 +83,8 @@ class _MiddlePanelState extends State<MiddlePanel> {
 
   @override
   void initState() {
-    controller = TextEditingController();
+    var token = widget.prefs.getString('token');
+    controller = TextEditingController(text: token);
     super.initState();
   }
 
@@ -112,11 +115,13 @@ class _MiddlePanelState extends State<MiddlePanel> {
               ),
               TextButton(
                 onPressed: () {
-                  Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => Game(controller.text),
-                      ));
+                  widget.prefs
+                      .setString('token', controller.text)
+                      .then((value) => Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => Game(controller.text),
+                          )));
                 },
                 child: const Icon(
                   Icons.play_arrow_rounded,
