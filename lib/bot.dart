@@ -9,9 +9,6 @@ import 'package:flutter_battle/turnmanager.dart';
 import 'package:nyxx/nyxx.dart';
 import 'package:nyxx_interactions/nyxx_interactions.dart';
 
-// const token =
-//     'OTc1MjA3NjAwNjcxMDMxMzM2.G79RZp.pyobNHybYRnMV5_5vDXv_Uxe-2-C4UKdax1KMg';
-
 void runBot(String token) {
   final bot =
       NyxxFactory.createNyxxWebsocket(token, GatewayIntents.allUnprivileged)
