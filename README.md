@@ -1,16 +1,12 @@
-# flutter_battle
+# SquareBattle
 
-A new Flutter project.
+Игра для дискорд-сервера с мультиплеером.
 
-## Getting Started
+## Как пользоваться
 
-This project is a starting point for a Flutter application.
+Создайте бота на [портале Дискорда для разработчиков](https://discord.com/developers/applications).
 
-A few resources to get you started if this is your first Flutter project:
+Скачайте последнюю версию приложения (или скомпилируйте, если вы параноик).
+![Скриншот](assets\screenshot.png)
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Вставьте токен в текстовое поле, запустите игру. В любом доступном для бота канале вашего дискорд-сервера напишите !squarebattle.
