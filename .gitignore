@@ -52,5 +52,5 @@ app.*.map.json
 /android/app/release
 
 # Screenshots
-*.png
+turn*.png
 *.pepk
