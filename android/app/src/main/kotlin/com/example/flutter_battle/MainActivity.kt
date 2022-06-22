@@ -1,4 +1,4 @@
-package com.example.flutter_battle
+package com.ivanyr.squarebattle
 
 import io.flutter.embedding.android.FlutterActivity
 
