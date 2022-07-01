@@ -150,6 +150,7 @@ class _MiddlePanelState extends State<MiddlePanel> {
                     Text('!stop – закончить игру'),
                     Text('!skip – пропускает ход'),
                     Text('!sbhelp – справка об игре'),
+                    Text('!sbversion – информация об обновлении'),
                     Text('Управление игрой доступно только создателю матча.'),
                   ],
                 ),
