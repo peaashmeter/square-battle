@@ -150,7 +150,7 @@ class Player extends Entity {
   }
 
   void shoot() {
-    const shootCost = 6;
+    var shootCost = 6 + state.turnManager.getIteration();
 
     if (money - shootCost < 0) {
       return;
@@ -212,7 +212,7 @@ class Player extends Entity {
             .first;
 
         if (wall.team == team) {
-          wall.hp - wall.hp;
+          wall.hp -= wall.hp;
         } else {
           wall.hp -= (bulletMaxDamage - i);
         }
@@ -241,7 +241,7 @@ class Player extends Entity {
   }
 
   void heal() {
-    const healBaseCost = 10;
+    var healBaseCost = 10 + state.turnManager.getIteration();
 
     if (hp < 5) {
       if (money - healBaseCost >= 0) {
@@ -268,9 +268,10 @@ class Player extends Entity {
   }
 
   void buildWall() {
+    var cost = Wall.cost + state.turnManager.getIteration();
     var targetCellPoint = _getPointedCell();
     if (targetCellPoint == null) return;
-    if (money - Wall.cost < 0) return;
+    if (money - cost < 0) return;
 
     Cell targetCell = state.cellsNotifier.value
         .where((cell) => cell.position == targetCellPoint)
@@ -280,7 +281,7 @@ class Player extends Entity {
         targetCell.entity == null &&
         targetCell.team == team) {
       state.entityManager.entities.add(Wall(targetCellPoint, team));
-      money -= Wall.cost;
+      money -= cost;
     }
   }
 

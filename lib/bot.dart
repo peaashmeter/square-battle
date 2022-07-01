@@ -2,6 +2,7 @@ import 'package:flutter_battle/entities.dart';
 import 'package:flutter_battle/game.dart';
 
 import 'package:flutter_battle/main.dart';
+import 'package:flutter_battle/patchnote.dart';
 
 import 'package:flutter_battle/team.dart';
 import 'package:flutter_battle/turnmanager.dart';
@@ -117,6 +118,8 @@ void runBot(String token) {
             .sendMessage(MessageBuilder.content('Игра остановлена!'));
       } else if (e.message.content == "!sbhelp") {
         getHelp(e);
+      } else if (e.message.content == "!sbversion") {
+        e.message.channel.sendMessage(MessageBuilder.content(patchnote));
       }
     } catch (e) {
       print(e);
@@ -273,14 +276,26 @@ String formatGameMessage() {
     return scoreTable;
   }
 
-  var gameMessageString =
-      'Идет игра: ход ${state.turnManager.turn}. До уменьшения поля осталось ${TurnManager.roundLength - state.turnManager.turn % TurnManager.roundLength} ходов';
+  var gameMessageString = 'Идет игра: ход ${state.turnManager.turn}. ';
+  if (state.turnManager.getIteration() < 3) {
+    gameMessageString +=
+        'До уменьшения поля осталось ${TurnManager.roundLength - state.turnManager.turn % TurnManager.roundLength} ходов';
+  } else {
+    gameMessageString +=
+        'Игра закончится через ${50 - state.turnManager.turn} ходов';
+  }
   if (TurnManager.roundLength -
           state.turnManager.turn % TurnManager.roundLength <=
       5) {
     gameMessageString += '⚠';
   }
 
+  gameMessageString += '\n';
+
+  if (state.turnManager.getIteration() > 0) {
+    gameMessageString +=
+        'Все цены увеличены на ${state.turnManager.getIteration()}!';
+  }
   gameMessageString += '\n';
 
   for (var player in state.playerManager.players) {
