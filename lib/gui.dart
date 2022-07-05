@@ -162,5 +162,7 @@ class _MiddlePanelState extends State<MiddlePanel> {
 }
 
 void _launchURL(String url) async {
-  if (!await launchUrl(Uri.parse(url))) throw 'Could not launch $url';
+  if (!await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication)) {
+    throw 'Could not launch $url';
+  }
 }
