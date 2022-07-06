@@ -1,0 +1,496 @@
+import 'dart:math';
+
+import 'package:flutter_battle/cell.dart';
+import 'package:flutter_battle/entities.dart';
+import 'package:flutter_battle/entitymanager.dart';
+import 'package:flutter_battle/global.dart';
+import 'package:flutter_battle/team.dart';
+
+void Function()? getAction(GameState state, Player self) {
+  var shootEfficiency = computeShootEfficiency(
+          self.position, self.rotation, self.team, state) +
+      efficiencyOfBeingInPoint(self.position, self.rotation, self.team, state);
+  var buildEfficiency = computeBuildEfficiency(
+          self.position, self.rotation, self.team, state) +
+      efficiencyOfBeingInPoint(self.position, self.rotation, self.team, state);
+  var healEfficiency = computeHealEfficiency(self, state) +
+      efficiencyOfBeingInPoint(self.position, self.rotation, self.team, state);
+  //Эффективность конкретного действия выше эффективности потенциального действия
+  const futureCoeff = 2 / 3;
+
+  var moveLeftEfficiency = computeMoveLeftEfficiency(self, state) * futureCoeff;
+  var moveUpEfficiency = computeMoveUpEfficiency(self, state) * futureCoeff;
+  var moveRightEfficiency =
+      computeMoveRightEfficiency(self, state) * futureCoeff;
+  var moveDownEfficiency = computeMoveDownEfficiency(self, state) * futureCoeff;
+
+  var stayEfficiency =
+      efficiencyOfBeingInPoint(self.position, self.rotation, self.team, state) *
+          futureCoeff;
+
+  var actions = {
+    self.shoot: shootEfficiency,
+    self.buildWall: buildEfficiency,
+    self.heal: healEfficiency,
+    self.moveLeft: moveLeftEfficiency,
+    self.moveUp: moveUpEfficiency,
+    self.moveRight: moveRightEfficiency,
+    self.moveDown: moveDownEfficiency,
+    null: stayEfficiency
+  };
+
+  var sorted = actions.entries.toList()
+    ..sort(((a, b) => b.value.compareTo(a.value)));
+  return sorted.first.key;
+}
+
+void Function()? getRotationAction(GameState state, Player self) {
+  var rotateLeftEfficiency = computeLeftRotationEfficiency(state, self);
+  var rotateRightEfficiency = computeRightRotationEfficiency(state, self);
+  var noRotateEfficiency = computeNoRotationEfficiency(state, self);
+
+  var actions = {
+    self.rotateLeft: rotateLeftEfficiency,
+    self.rotateRight: rotateRightEfficiency,
+    null: noRotateEfficiency
+  };
+  var sorted = actions.entries.toList()
+    ..sort(((a, b) => a.value.compareTo(b.value)));
+  return sorted.first.key;
+}
+
+double computeLeftRotationEfficiency(GameState state, Player self) {
+  var index = self.rotation.index;
+  index -= 1;
+  index %= 4;
+  var rotation = Rotation.values[index];
+
+  return efficiencyOfBeingInPoint(self.position, rotation, self.team, state);
+}
+
+double computeRightRotationEfficiency(GameState state, Player self) {
+  var index = self.rotation.index;
+  index += 1;
+  index %= 4;
+  var rotation = Rotation.values[index];
+
+  return efficiencyOfBeingInPoint(self.position, rotation, self.team, state);
+}
+
+double computeNoRotationEfficiency(GameState state, Player self) {
+  return efficiencyOfBeingInPoint(
+      self.position, self.rotation, self.team, state, true);
+}
+
+double computeShootEfficiency(
+    Point<int> p, Rotation r, Team t, GameState state) {
+  late Point<int> vec;
+
+  var _self = state.playerManager.players.where((player) => player.user.bot);
+
+  late Player self;
+  if (_self.isNotEmpty) {
+    self = _self.first;
+  } else {
+    return 0;
+  }
+
+  if (self.money < 6 + state.turnManager.getIteration()) {
+    return 0;
+  }
+
+  switch (r) {
+    case Rotation.left:
+      vec = const Point(-1, 0);
+      break;
+    case Rotation.up:
+      vec = const Point(0, -1);
+      break;
+    case Rotation.right:
+      vec = const Point(1, 0);
+      break;
+    case Rotation.down:
+      vec = const Point(0, 1);
+      break;
+  }
+
+  const bulletPathLength = 3;
+  const bulletMaxDamage = 3;
+
+  int cellsPrediction = 0;
+  int damagePrediction = 0;
+
+  Point<int> currentPoint = p + vec;
+
+  for (var i = 0; i < bulletPathLength; i++) {
+    if (currentPoint.x < 0 ||
+        currentPoint.x > 8 ||
+        currentPoint.y < 0 ||
+        currentPoint.y > 8 ||
+        state.cellsNotifier.value
+            .where((c) => c.isAlive)
+            .where((cell) => cell.position == currentPoint)
+            .isEmpty) {
+      break;
+    }
+    var cell = state.cellsNotifier.value
+        .where((c) => c.position == currentPoint)
+        .first;
+    if (cell.team != t) {
+      cellsPrediction++;
+    }
+    if (state.playerManager.players
+        .where((p) => p.position == currentPoint && p.isAlive)
+        .isNotEmpty) {
+      damagePrediction += (bulletMaxDamage - i);
+      break;
+    } else if (state.entityManager.entities
+        .whereType<Wall>()
+        .where((p) => p.position == currentPoint)
+        .isNotEmpty) {
+      var wall = state.entityManager.entities
+          .whereType<Wall>()
+          .where((p) => p.position == currentPoint)
+          .first;
+
+      if (wall.team == t) {
+      } else {
+        damagePrediction += (bulletMaxDamage - i);
+      }
+
+      break;
+    } else {
+      currentPoint += vec;
+    }
+  }
+
+  var efficiency = damagePrediction / 3 + cellsPrediction / 3;
+
+  return efficiency;
+}
+
+double computeBuildEfficiency(
+    Point<int> p, Rotation r, Team t, GameState state) {
+  late Point<int> vec;
+
+  var _self = state.playerManager.players.where((player) => player.user.bot);
+  late Player self;
+  if (_self.isNotEmpty) {
+    self = _self.first;
+  } else {
+    return 0;
+  }
+
+  if (self.money < 5 + state.turnManager.getIteration()) {
+    return 0;
+  }
+
+  switch (r) {
+    case Rotation.left:
+      vec = const Point(-1, 0);
+      break;
+    case Rotation.up:
+      vec = const Point(0, -1);
+      break;
+    case Rotation.right:
+      vec = const Point(1, 0);
+      break;
+    case Rotation.down:
+      vec = const Point(0, 1);
+      break;
+  }
+  //Клетка, в которой будем строить стену
+  var targetCells =
+      state.cellsNotifier.value.where((cell) => cell.position == p + vec);
+
+  if (targetCells.isEmpty) {
+    return 0;
+  }
+  var targetCell = targetCells.first;
+
+  var baseLength = calculatePathLenghtToCenter(p, state);
+
+  var _state = GameState();
+  _state.cellsNotifier = state.cellsNotifier;
+  _state.entityManager = EntityManager()
+    ..entities = List.from(state.entityManager.entities);
+  _state.playerManager = state.playerManager;
+  _state.turnManager = state.turnManager;
+
+  if (targetCell.isAlive && targetCell.entity == null && targetCell.team == t) {
+    _state.entityManager.entities.add(Wall(targetCell.position, t));
+  } else {
+    return 0;
+  }
+
+  if (baseLength < calculatePathLenghtToCenter(p, _state)) {
+    return -1 / 3;
+  }
+
+  for (var player in state.playerManager.players.where((p) => p != self)) {
+    var baseLength = calculatePathLenghtToCenter(player.position, state);
+
+    var newLength = calculatePathLenghtToCenter(player.position, _state);
+
+    if (baseLength < newLength) {
+      return 2 / 3;
+    }
+  }
+
+  return 1 / 3;
+}
+
+double computeHealEfficiency(Player self, GameState state) {
+  var healBaseCost = 10 + state.turnManager.getIteration();
+
+  //Чем меньше хп, тем больше мы хотим хилиться
+  if (self.hp > 0 && self.money >= healBaseCost) {
+    var weight = 1 / self.hp;
+    return weight;
+  } else {
+    return 0;
+  }
+}
+
+double computeMoveLeftEfficiency(Player self, GameState state) {
+  if (self.position.x != 0) {
+    var _position = Point(self.position.x - 1, self.position.y);
+    return _computeMoveEfficiency(self, _position, state);
+  }
+  return efficiencyOfBeingInPoint(
+      self.position, self.rotation, self.team, state);
+}
+
+double computeMoveUpEfficiency(Player self, GameState state) {
+  if (self.position.y != 0) {
+    var _position = Point(self.position.x, self.position.y - 1);
+    return _computeMoveEfficiency(self, _position, state);
+  }
+  return efficiencyOfBeingInPoint(
+      self.position, self.rotation, self.team, state);
+}
+
+double computeMoveRightEfficiency(Player self, GameState state) {
+  if (self.position.x + 1 < state.turnManager.getSize()) {
+    var _position = Point(self.position.x + 1, self.position.y);
+    return _computeMoveEfficiency(self, _position, state);
+  }
+  return efficiencyOfBeingInPoint(
+      self.position, self.rotation, self.team, state);
+}
+
+double computeMoveDownEfficiency(Player self, GameState state) {
+  if (self.position.y + 1 < state.turnManager.getSize()) {
+    var _position = Point(self.position.x, self.position.y + 1);
+    return _computeMoveEfficiency(self, _position, state);
+  }
+  return efficiencyOfBeingInPoint(
+      self.position, self.rotation, self.team, state);
+}
+
+double _computeMoveEfficiency(
+    Player self, Point<int> _position, GameState state) {
+  List<Entity> entities = self.getEntities();
+  if (entities.where((e) => e.position == _position).isNotEmpty) {
+    return efficiencyOfBeingInPoint(
+        self.position, self.rotation, self.team, state);
+  }
+  if (state.cellsNotifier.value
+      .where((c) => !c.isAlive && c.position == _position)
+      .isNotEmpty) {
+    return efficiencyOfBeingInPoint(
+        self.position, self.rotation, self.team, state);
+  }
+  var captured = 0;
+  if (state.cellsNotifier.value
+          .where((c) => c.position == _position)
+          .first
+          .team !=
+      self.team) {
+    captured++;
+  }
+  //После перемещения учитываем порядок игроков
+  return efficiencyOfBeingInPoint(
+          _position, self.rotation, self.team, state, true) +
+      captured / 3;
+}
+
+int calculatePathLenghtToCenter(Point<int> p, GameState state) {
+  var center = const Point<int>(4, 4);
+  int getLength(Point<int> p) =>
+      (p.x - center.x).abs() + (p.y - center.y).abs();
+
+  var pos = p;
+
+  var length = 0;
+
+  while (pos != center) {
+    var nextPoss = <Point<int>>[];
+
+    //MoveRight
+    if (pos.x + 1 < state.turnManager.getSize()) {
+      var _position = Point(pos.x + 1, pos.y);
+      pathTrace(state, _position, center, nextPoss);
+    }
+
+    var entities = state.playerManager.players.first.getEntities();
+
+    //MoveLeft
+    if (pos.x != 0) {
+      var _position = Point(pos.x - 1, pos.y);
+      pathTrace(state, _position, center, nextPoss);
+    }
+
+    //MoveDown
+    if (pos.y != 0) {
+      var _position = Point(pos.x, pos.y - 1);
+      pathTrace(state, _position, center, nextPoss);
+    }
+
+    //MoveUp
+    if (pos.y + 1 < state.turnManager.getSize()) {
+      var _position = Point(pos.x, pos.y + 1);
+      pathTrace(state, _position, center, nextPoss);
+    }
+
+    nextPoss.sort((a, b) => getLength(a).compareTo(getLength(b)));
+    pos = nextPoss.first;
+
+    length++;
+  }
+
+  return length;
+}
+
+void pathTrace(GameState state, Point<int> _position, Point<int> center,
+    List<Point<int>> nextPoss) {
+  List<Entity> entities = state.playerManager.players.first.getEntities();
+  if (_position == center) {
+    nextPoss.add(_position);
+  } else if (entities.where((e) => e.position == _position).isNotEmpty) {
+  } else if (state.cellsNotifier.value
+      .where((c) => !c.isAlive && c.position == _position)
+      .isNotEmpty) {
+  } else {
+    nextPoss.add(_position);
+  }
+}
+
+double calculateWeightOfRecievedDamage(Point p, GameState state,
+    [bool order = false]) {
+  late Iterable<Player> players;
+
+  var _self = state.playerManager.players.where((player) => player.user.bot);
+  late Player self;
+  if (_self.isNotEmpty) {
+    self = _self.first;
+  } else {
+    return 0;
+  }
+
+  if (order) {
+    players = state.playerManager.players.where((p) => p != self).where((p) =>
+        state.playerManager.players.indexOf(p) >
+        state.playerManager.players.indexOf(self));
+  } else {
+    players = state.playerManager.players.where((p) => p != self);
+  }
+
+  double shoot(Point p, Player player) {
+    late Point<int> vec;
+
+    switch (player.rotation) {
+      case Rotation.left:
+        vec = const Point(-1, 0);
+        break;
+      case Rotation.up:
+        vec = const Point(0, -1);
+        break;
+      case Rotation.right:
+        vec = const Point(1, 0);
+        break;
+      case Rotation.down:
+        vec = const Point(0, 1);
+        break;
+    }
+
+    const bulletPathLength = 3;
+    const bulletMaxDamage = 3;
+
+    Point<int> currentPoint = player.position + vec;
+
+    for (var i = 0; i < bulletPathLength; i++) {
+      if (currentPoint.x < 0 ||
+          currentPoint.x > 8 ||
+          currentPoint.y < 0 ||
+          currentPoint.y > 8 ||
+          state.cellsNotifier.value
+              .where((c) => c.isAlive)
+              .where((cell) => cell.position == currentPoint)
+              .isEmpty) {
+        break;
+      }
+      var cell = state.cellsNotifier.value
+          .where((c) => c.position == currentPoint)
+          .first;
+      if (state.playerManager.players
+          .where((p) => p.position == currentPoint && p.isAlive)
+          .isNotEmpty) {
+        state.playerManager.players
+            .where((p) => p.position == currentPoint && p.isAlive)
+            .first
+            .hp -= (bulletMaxDamage - i);
+        break;
+      } else if (state.entityManager.entities
+          .whereType<Wall>()
+          .where((p) => p.position == currentPoint)
+          .isNotEmpty) {
+        var wall = state.entityManager.entities
+            .whereType<Wall>()
+            .where((p) => p.position == currentPoint)
+            .first;
+        break;
+      } else {
+        if (currentPoint == p) {
+          if (bulletMaxDamage - i > self.hp) {
+            return -1;
+          }
+          return (-1 / 3) * (bulletMaxDamage - i);
+        }
+
+        currentPoint += vec;
+      }
+    }
+    return 0;
+  }
+
+  double weigth = 0;
+
+  //проверяем, может ли каждый игрок попасть в клетку p
+
+  for (var player in players) {
+    weigth += shoot(p, player);
+  }
+  return weigth;
+}
+
+double checkIfEdge(Point p, GameState state) {
+  if (state.turnManager.turn < 30 && state.turnManager.turn % 10 == 9) {
+    if (p.x == 0 + state.turnManager.getIteration() ||
+        p.x == 9 - state.turnManager.getIteration() ||
+        p.y == 0 + state.turnManager.getIteration() ||
+        p.y == 9 - state.turnManager.getIteration()) {
+      return -1;
+    }
+  }
+  return 0;
+}
+
+double efficiencyOfBeingInPoint(
+    Point<int> p, Rotation r, Team t, GameState state,
+    [bool order = false]) {
+  return checkIfEdge(p, state) +
+      calculateWeightOfRecievedDamage(p, state, order) +
+      computeBuildEfficiency(p, r, t, state) +
+      computeShootEfficiency(p, r, t, state);
+}

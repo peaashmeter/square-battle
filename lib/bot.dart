@@ -1,3 +1,6 @@
+import 'dart:math';
+
+import 'package:flutter_battle/ai.dart';
 import 'package:flutter_battle/entities.dart';
 import 'package:flutter_battle/game.dart';
 
@@ -60,7 +63,18 @@ void runBot(String token) {
         gameInitiatorId = e.message.author.id.id;
 
         state.isStartingGame = true;
-        participants = {};
+
+        // ---- Бот
+        participants = {
+          bot.self: UnicodeEmoji(
+              emojiWhiteList[Random().nextInt(emojiWhiteList.length)])
+        };
+
+        state.playerManager.addPlayer(participants.keys.first,
+            getTeamByEmoji(participants.values.first.formatForMessage()));
+        state.turnManager.updateCells();
+        // ----
+
         await msg.createReaction(UnicodeEmoji('🟥'));
         await Future.delayed(const Duration(milliseconds: 500),
             () => msg.createReaction(UnicodeEmoji('🟧')));
@@ -324,6 +338,19 @@ Future<void> buttonHandler(IButtonInteractionEvent event) async {
       .acknowledge(); // ack the interaction so we can send response later
 
   var user = event.interaction.userAuthor;
+
+  Player? bot;
+
+  for (var p in state.playerManager.players) {
+    if (p.user.bot) {
+      bot = p;
+    }
+  }
+  if (bot != null && !bot.isTurnMade) {
+    bot.action = getAction(state, bot);
+    bot.rotationAction = getRotationAction(state, bot);
+    bot.makeTurn();
+  }
 
   // Send followup to button click with id of button
   // await event.sendFollowup(MessageBuilder.content(

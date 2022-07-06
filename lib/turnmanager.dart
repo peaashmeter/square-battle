@@ -1,3 +1,4 @@
+import 'package:flutter_battle/ai.dart';
 import 'package:flutter_battle/bot.dart';
 import 'package:flutter_battle/cell.dart';
 import 'package:flutter_battle/entities.dart';
