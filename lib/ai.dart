@@ -10,18 +10,24 @@ void Function()? getAction(GameState state, Player self) {
   var shootEfficiency = computeShootEfficiency(
           self.position, self.rotation, self.team, state) +
       efficiencyOfBeingInPoint(self.position, self.rotation, self.team, state);
+
   var buildEfficiency = computeBuildEfficiency(
           self.position, self.rotation, self.team, state) +
       efficiencyOfBeingInPoint(self.position, self.rotation, self.team, state);
+
   var healEfficiency = computeHealEfficiency(self, state) +
       efficiencyOfBeingInPoint(self.position, self.rotation, self.team, state);
+
   //Эффективность конкретного действия выше эффективности потенциального действия
   const futureCoeff = 2 / 3;
 
   var moveLeftEfficiency = computeMoveLeftEfficiency(self, state) * futureCoeff;
+
   var moveUpEfficiency = computeMoveUpEfficiency(self, state) * futureCoeff;
+
   var moveRightEfficiency =
       computeMoveRightEfficiency(self, state) * futureCoeff;
+
   var moveDownEfficiency = computeMoveDownEfficiency(self, state) * futureCoeff;
 
   var stayEfficiency =
@@ -41,7 +47,15 @@ void Function()? getAction(GameState state, Player self) {
 
   var sorted = actions.entries.toList()
     ..sort(((a, b) => b.value.compareTo(a.value)));
-  return sorted.first.key;
+  var max = sorted.first.value;
+
+  print('sorted : ${sorted}');
+
+  var sortedmax = sorted.where((e) => e.value == max).toList();
+
+  print(sortedmax);
+
+  return sortedmax[Random().nextInt(sortedmax.length)].key;
 }
 
 void Function()? getRotationAction(GameState state, Player self) {
@@ -55,8 +69,13 @@ void Function()? getRotationAction(GameState state, Player self) {
     null: noRotateEfficiency
   };
   var sorted = actions.entries.toList()
-    ..sort(((a, b) => a.value.compareTo(b.value)));
-  return sorted.first.key;
+    ..sort(((a, b) => b.value.compareTo(a.value)));
+
+  var max = sorted.first.value;
+
+  var sortedmax = sorted.where((e) => e.value == max).toList();
+
+  return sortedmax[Random().nextInt(sortedmax.length)].key;
 }
 
 double computeLeftRotationEfficiency(GameState state, Player self) {
@@ -237,7 +256,7 @@ double computeBuildEfficiency(
     }
   }
 
-  return 1 / 3;
+  return 0;
 }
 
 double computeHealEfficiency(Player self, GameState state) {
@@ -324,7 +343,11 @@ int calculatePathLenghtToCenter(Point<int> p, GameState state) {
 
   var length = 0;
 
+  List<Point<int>> visited = [];
+
   while (pos != center) {
+    visited.add(pos);
+
     var nextPoss = <Point<int>>[];
 
     //MoveRight
@@ -332,8 +355,6 @@ int calculatePathLenghtToCenter(Point<int> p, GameState state) {
       var _position = Point(pos.x + 1, pos.y);
       pathTrace(state, _position, center, nextPoss);
     }
-
-    var entities = state.playerManager.players.first.getEntities();
 
     //MoveLeft
     if (pos.x != 0) {
@@ -354,6 +375,12 @@ int calculatePathLenghtToCenter(Point<int> p, GameState state) {
     }
 
     nextPoss.sort((a, b) => getLength(a).compareTo(getLength(b)));
+    nextPoss.removeWhere((p) => visited.contains(p));
+
+    if (nextPoss.isEmpty) {
+      break;
+    }
+
     pos = nextPoss.first;
 
     length++;
@@ -436,10 +463,6 @@ double calculateWeightOfRecievedDamage(Point p, GameState state,
       if (state.playerManager.players
           .where((p) => p.position == currentPoint && p.isAlive)
           .isNotEmpty) {
-        state.playerManager.players
-            .where((p) => p.position == currentPoint && p.isAlive)
-            .first
-            .hp -= (bulletMaxDamage - i);
         break;
       } else if (state.entityManager.entities
           .whereType<Wall>()
@@ -452,8 +475,8 @@ double calculateWeightOfRecievedDamage(Point p, GameState state,
         break;
       } else {
         if (currentPoint == p) {
-          if (bulletMaxDamage - i > self.hp) {
-            return -1;
+          if (bulletMaxDamage - i >= self.hp) {
+            return -1e6 / 2;
           }
           return (-1 / 3) * (bulletMaxDamage - i);
         }
@@ -477,10 +500,10 @@ double calculateWeightOfRecievedDamage(Point p, GameState state,
 double checkIfEdge(Point p, GameState state) {
   if (state.turnManager.turn < 30 && state.turnManager.turn % 10 == 9) {
     if (p.x == 0 + state.turnManager.getIteration() ||
-        p.x == 9 - state.turnManager.getIteration() ||
+        p.x == 8 - state.turnManager.getIteration() ||
         p.y == 0 + state.turnManager.getIteration() ||
-        p.y == 9 - state.turnManager.getIteration()) {
-      return -1;
+        p.y == 8 - state.turnManager.getIteration()) {
+      return -1e6;
     }
   }
   return 0;

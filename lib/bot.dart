@@ -344,6 +344,7 @@ Future<void> buttonHandler(IButtonInteractionEvent event) async {
   for (var p in state.playerManager.players) {
     if (p.user.bot) {
       bot = p;
+      break;
     }
   }
   if (bot != null && !bot.isTurnMade) {
