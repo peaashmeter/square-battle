@@ -69,14 +69,12 @@ void runBot(String token) {
         state.isStartingGame = true;
 
         // ---- Бот
-        Future.delayed(Duration(milliseconds: Random().nextInt(3000) + 2000),
-            () {
+        Future.delayed(const Duration(milliseconds: 2000), () {
           addBot(participants, msg);
-        });
-        Future.delayed(Duration(milliseconds: Random().nextInt(3000) + 2000),
-            () {
-          addBot(participants, msg);
-        });
+        }).then(
+            (value) => Future.delayed(const Duration(milliseconds: 2000), () {
+                  addBot(participants, msg);
+                }));
 
         // ----
 
@@ -194,8 +192,9 @@ void runBot(String token) {
 }
 
 void addBot(Map<IUser, IEmoji> participants, IMessage msg) {
-  Set<String> remainingColors =
-      emojiWhiteList.toSet().difference(participants.values.toSet());
+  var emojis = emojiWhiteList.toSet();
+  var usedEmojis = participants.values.map((e) => e.formatForMessage()).toSet();
+  var remainingColors = emojis.difference(usedEmojis);
   if (remainingColors.isNotEmpty) {
     var color =
         remainingColors.elementAt(Random().nextInt(remainingColors.length));
@@ -285,7 +284,7 @@ Future<Map<IUser, IEmoji>> startGame(IMessage? startMessage,
 }
 
 String formatGameMessage() {
-  if (state.turnManager.turn == 50 ||
+  if (state.turnManager.turn >= 50 ||
       state.playerManager.players.where((p) => p.isAlive).isEmpty) {
     var scoreTable = 'Игра закончена! Результаты: \n';
     var players = List<Player>.from(state.playerManager.players
@@ -295,8 +294,6 @@ String formatGameMessage() {
     for (var player in players) {
       scoreTable += '${player.user.username}: ${player.totalScore} очков \n';
     }
-
-    Future.delayed(const Duration(seconds: 10), (() => state.resetGame()));
 
     return scoreTable;
   }
@@ -310,7 +307,7 @@ String formatGameMessage() {
     for (var player in players) {
       scoreTable += '${player.user.username}: ${player.totalScore} очков \n';
     }
-    Future.delayed(const Duration(seconds: 10), (() => state.resetGame()));
+
     return scoreTable;
   }
 
