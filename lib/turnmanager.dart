@@ -12,6 +12,7 @@ class TurnManager {
   bool isPlaying;
 
   static const roundLength = 10;
+  static const gameLength = 50;
 
   TurnManager(this.turn, [this.isPlaying = false]);
 
@@ -55,8 +56,12 @@ class TurnManager {
 
     if (isPlaying) {
       turn++;
+      doGameCycle();
     }
+  }
 
+  void doGameCycle() {
+    checkIfGameEnded();
     var size = getSize();
 
     var cells = List<Cell>.from(state.cellsNotifier.value);
@@ -84,8 +89,17 @@ class TurnManager {
     //в этот момент надо удалить старое сообщение с информацией и прислать новое, чтобы оно всегда было внизу истории сообщений
     resendGameMessage();
 
-    if (isPlaying) {
-      scheduleBotsActions();
+    scheduleBotsActions();
+  }
+
+  void checkIfGameEnded() {
+    if (turn == gameLength) {
+      isPlaying = false;
+      Future.delayed(const Duration(seconds: 10), (() => state.resetGame()));
+    }
+    if (state.playerManager.players.where((p) => p.isAlive).length == 1) {
+      isPlaying = false;
+      Future.delayed(const Duration(seconds: 10), (() => state.resetGame()));
     }
   }
 
@@ -157,16 +171,18 @@ class TurnManager {
   }
 
   void initGame() {
-    var size = getSize();
-    var cells = List<Cell>.from(state.cellsNotifier.value);
+    // var size = getSize();
+    // var cells = List<Cell>.from(state.cellsNotifier.value);
 
-    for (var player in state.playerManager.players) {
-      var linearPos = player.position.y * size + player.position.x;
-      cells[linearPos].entity = player;
+    // for (var player in state.playerManager.players) {
+    //   var linearPos = player.position.y * size + player.position.x;
+    //   cells[linearPos].entity = player;
 
-      cells[linearPos].team = player.team;
-    }
-    state.cellsNotifier.value = cells;
-    scheduleBotsActions();
+    //   cells[linearPos].team = player.team;
+    // }
+    // state.cellsNotifier.value = cells;
+    // scheduleBotsActions();
+
+    doGameCycle();
   }
 }
