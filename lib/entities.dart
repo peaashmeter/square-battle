@@ -3,7 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:nyxx/nyxx.dart';
 
-import 'ai.dart';
+import 'ai/ai.dart';
 import 'cell.dart';
 import 'main.dart';
 import 'team.dart';

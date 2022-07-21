@@ -1,6 +1,7 @@
 import 'dart:math';
 
-import 'package:flutter_battle/ai.dart';
+import 'package:flutter_battle/ai/ai.dart';
+import 'package:flutter_battle/ai/bot_user.dart';
 import 'package:flutter_battle/entities.dart';
 import 'package:flutter_battle/game.dart';
 
@@ -40,6 +41,7 @@ void runBot(String token) {
     ..registerButtonHandler("down", buttonHandler)
     ..registerButtonHandler("heal", buttonHandler)
     ..registerButtonHandler("make_turn", buttonHandler)
+    ..registerButtonHandler("cancel", buttonHandler)
     ..syncOnReady();
   // Listen for message events
   bot.eventsWs.onMessageReceived.listen((e) async {
@@ -55,6 +57,8 @@ void runBot(String token) {
               .sendMessage(MessageBuilder.content('Игра уже идет!'));
           return;
         }
+        participants = {};
+
         final msg = await e.message.channel.sendMessage(MessageBuilder.content(
             '${e.message.author.username} начал игру! Выберите цвет, чтобы присоединиться.'));
 
@@ -65,14 +69,15 @@ void runBot(String token) {
         state.isStartingGame = true;
 
         // ---- Бот
-        participants = {
-          bot.self: UnicodeEmoji(
-              emojiWhiteList[Random().nextInt(emojiWhiteList.length)])
-        };
+        Future.delayed(Duration(milliseconds: Random().nextInt(3000) + 2000),
+            () {
+          addBot(participants, msg);
+        });
+        Future.delayed(Duration(milliseconds: Random().nextInt(3000) + 2000),
+            () {
+          addBot(participants, msg);
+        });
 
-        state.playerManager.addPlayer(participants.keys.first,
-            getTeamByEmoji(participants.values.first.formatForMessage()));
-        state.turnManager.updateCells();
         // ----
 
         await msg.createReaction(UnicodeEmoji('🟥'));
@@ -180,24 +185,40 @@ void runBot(String token) {
       if (!participants.values.any((e) => e.toString() == emoji.toString())) {
         participants[sender] = emoji;
 
-        var string = 'Началась регистрация на участие в игре SquareBattle!\n\n';
-
-        for (var p in participants.entries) {
-          string += '${p.value.formatForMessage()} ${p.key.username}\n';
-        }
-
-        string += 'Напишите !start, чтобы начать игру';
-
-        state.playerManager
-            .addPlayer(user, getTeamByEmoji(emoji.formatForMessage()));
-        state.turnManager.updateCells();
-
-        msg?.edit(MessageBuilder.content(string));
+        updateRegistrationMessage(participants, user, emoji, msg);
       }
     } catch (e) {
       print(e);
     }
   });
+}
+
+void addBot(Map<IUser, IEmoji> participants, IMessage msg) {
+  Set<String> remainingColors =
+      emojiWhiteList.toSet().difference(participants.values.toSet());
+  if (remainingColors.isNotEmpty) {
+    var color =
+        remainingColors.elementAt(Random().nextInt(remainingColors.length));
+    var user = BotUser();
+    participants.addAll({user: UnicodeEmoji(color)});
+    updateRegistrationMessage(participants, user, UnicodeEmoji(color), msg);
+  }
+}
+
+void updateRegistrationMessage(
+    Map<IUser, IEmoji> participants, IUser user, IEmoji emoji, IMessage? msg) {
+  var string = 'Началась регистрация на участие в игре SquareBattle!\n\n';
+
+  for (var p in participants.entries) {
+    string += '${p.value.formatForMessage()} ${p.key.username}\n';
+  }
+
+  string += 'Напишите !start, чтобы начать игру';
+
+  state.playerManager.addPlayer(user, getTeamByEmoji(emoji.formatForMessage()));
+  state.turnManager.updateCells();
+
+  msg?.edit(MessageBuilder.content(string));
 }
 
 void onReactionRemove(IUser user, IMessageReactionEvent event,
@@ -238,6 +259,7 @@ void getHelp(IMessageReceivedEvent e) {
 💥 – выстрелить на 3 клетки в направлении игрока (6 монет). Урон зависит от расстояния.
 🧱 – построить стену в направлении игрока (5 монет). У стены 3 единицы здоровья.
 ❤ – восстановить 1 единицу здоровья (10 + 5 за каждую дополнительную единицу здоровья).
+🚫 – отменить выбранные действия и готовность завершить ход.
 
 Подписывайтесь на дискорд https://discord.gg/9Sg3GDzmQg и ютуб https://www.youtube.com/channel/UCvb-2jADopGlMKM96qrfKjw создателя!
 '''));
@@ -274,6 +296,8 @@ String formatGameMessage() {
       scoreTable += '${player.user.username}: ${player.totalScore} очков \n';
     }
 
+    Future.delayed(const Duration(seconds: 10), (() => state.resetGame()));
+
     return scoreTable;
   }
   if (state.playerManager.players.where((p) => p.isAlive).length == 1) {
@@ -286,7 +310,7 @@ String formatGameMessage() {
     for (var player in players) {
       scoreTable += '${player.user.username}: ${player.totalScore} очков \n';
     }
-
+    Future.delayed(const Duration(seconds: 10), (() => state.resetGame()));
     return scoreTable;
   }
 
@@ -339,20 +363,6 @@ Future<void> buttonHandler(IButtonInteractionEvent event) async {
 
   var user = event.interaction.userAuthor;
 
-  Player? bot;
-
-  for (var p in state.playerManager.players) {
-    if (p.user.bot) {
-      bot = p;
-      break;
-    }
-  }
-  if (bot != null && !bot.isTurnMade) {
-    bot.action = getAction(state, bot);
-    bot.rotationAction = getRotationAction(state, bot);
-    bot.makeTurn();
-  }
-
   // Send followup to button click with id of button
   // await event.sendFollowup(MessageBuilder.content(
   //     "${event.interaction.userAuthor?.username} нажал на кнопку ${event.interaction.customId}"));
@@ -398,7 +408,30 @@ Future<void> buttonHandler(IButtonInteractionEvent event) async {
     case 'heal':
       player.action = player.heal;
       break;
+    case 'cancel':
+      player.action = null;
+      player.rotationAction = null;
+      player.isTurnMade = false;
+      state.gameMessage?.edit(await createKeyboard(false));
+      break;
     default:
+  }
+}
+
+void scheduleBotsActions() {
+  for (var bot in state.playerManager.players) {
+    if (bot.user.bot) {
+      if (!bot.isTurnMade) {
+        Future.delayed(Duration(milliseconds: Random().nextInt(3000) + 3000),
+            () async {
+          bot.action = getAction(state, bot);
+          bot.rotationAction = getRotationAction(state, bot);
+
+          bot.makeTurn();
+          state.gameMessage?.edit(await createKeyboard(false));
+        });
+      }
+    }
   }
 }
 
@@ -478,8 +511,8 @@ Future<MessageBuilder> createKeyboard([bool appendScreenshot = true]) async {
     ..addComponent(backButton)
     ..addComponent(actionButton);
 
-  var none1Button =
-      ButtonBuilder(' ', 'none1', ButtonStyle.secondary, disabled: true);
+  var cancelButton = ButtonBuilder('', 'cancel', ButtonStyle.secondary)
+    ..emoji = UnicodeEmoji('🚫');
   var none2Button =
       ButtonBuilder(' ', 'none2', ButtonStyle.secondary, disabled: true);
 
@@ -490,7 +523,7 @@ Future<MessageBuilder> createKeyboard([bool appendScreenshot = true]) async {
   )..emoji = UnicodeEmoji('✅');
 
   var skipRow = ComponentRowBuilder()
-    ..addComponent(none1Button)
+    ..addComponent(cancelButton)
     ..addComponent(skipButton)
     ..addComponent(none2Button);
 

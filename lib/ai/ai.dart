@@ -7,16 +7,14 @@ import 'package:flutter_battle/global.dart';
 import 'package:flutter_battle/team.dart';
 
 void Function()? getAction(GameState state, Player self) {
-  var shootEfficiency = computeShootEfficiency(
-          self.position, self.rotation, self.team, state) +
-      efficiencyOfBeingInPoint(self.position, self.rotation, self.team, state);
+  var shootEfficiency = computeShootEfficiency(self, state) +
+      efficiencyOfBeingInPoint(self, state);
 
-  var buildEfficiency = computeBuildEfficiency(
-          self.position, self.rotation, self.team, state) +
-      efficiencyOfBeingInPoint(self.position, self.rotation, self.team, state);
+  var buildEfficiency = computeBuildEfficiency(self, state) +
+      efficiencyOfBeingInPoint(self, state);
 
   var healEfficiency = computeHealEfficiency(self, state) +
-      efficiencyOfBeingInPoint(self.position, self.rotation, self.team, state);
+      efficiencyOfBeingInPoint(self, state);
 
   //Эффективность конкретного действия выше эффективности потенциального действия
   const futureCoeff = 2 / 3;
@@ -30,9 +28,7 @@ void Function()? getAction(GameState state, Player self) {
 
   var moveDownEfficiency = computeMoveDownEfficiency(self, state) * futureCoeff;
 
-  var stayEfficiency =
-      efficiencyOfBeingInPoint(self.position, self.rotation, self.team, state) *
-          futureCoeff;
+  var stayEfficiency = efficiencyOfBeingInPoint(self, state) * futureCoeff;
 
   var actions = {
     self.shoot: shootEfficiency,
@@ -84,7 +80,7 @@ double computeLeftRotationEfficiency(GameState state, Player self) {
   index %= 4;
   var rotation = Rotation.values[index];
 
-  return efficiencyOfBeingInPoint(self.position, rotation, self.team, state);
+  return efficiencyOfBeingInPoint(self, state);
 }
 
 double computeRightRotationEfficiency(GameState state, Player self) {
@@ -93,32 +89,20 @@ double computeRightRotationEfficiency(GameState state, Player self) {
   index %= 4;
   var rotation = Rotation.values[index];
 
-  return efficiencyOfBeingInPoint(self.position, rotation, self.team, state);
+  return efficiencyOfBeingInPoint(self, state);
 }
 
 double computeNoRotationEfficiency(GameState state, Player self) {
-  return efficiencyOfBeingInPoint(
-      self.position, self.rotation, self.team, state, true);
+  return efficiencyOfBeingInPoint(self, state, true);
 }
 
-double computeShootEfficiency(
-    Point<int> p, Rotation r, Team t, GameState state) {
+double computeShootEfficiency(Player self, GameState state) {
   late Point<int> vec;
-
-  var _self = state.playerManager.players.where((player) => player.user.bot);
-
-  late Player self;
-  if (_self.isNotEmpty) {
-    self = _self.first;
-  } else {
-    return 0;
-  }
-
   if (self.money < 6 + state.turnManager.getIteration()) {
     return 0;
   }
 
-  switch (r) {
+  switch (self.rotation) {
     case Rotation.left:
       vec = const Point(-1, 0);
       break;
@@ -139,7 +123,7 @@ double computeShootEfficiency(
   int cellsPrediction = 0;
   int damagePrediction = 0;
 
-  Point<int> currentPoint = p + vec;
+  Point<int> currentPoint = self.position + vec;
 
   for (var i = 0; i < bulletPathLength; i++) {
     if (currentPoint.x < 0 ||
@@ -155,7 +139,7 @@ double computeShootEfficiency(
     var cell = state.cellsNotifier.value
         .where((c) => c.position == currentPoint)
         .first;
-    if (cell.team != t) {
+    if (cell.team != self.team) {
       cellsPrediction++;
     }
     if (state.playerManager.players
@@ -172,7 +156,7 @@ double computeShootEfficiency(
           .where((p) => p.position == currentPoint)
           .first;
 
-      if (wall.team == t) {
+      if (wall.team == self.team) {
       } else {
         damagePrediction += (bulletMaxDamage - i);
       }
@@ -188,23 +172,14 @@ double computeShootEfficiency(
   return efficiency;
 }
 
-double computeBuildEfficiency(
-    Point<int> p, Rotation r, Team t, GameState state) {
+double computeBuildEfficiency(Player self, GameState state) {
   late Point<int> vec;
-
-  var _self = state.playerManager.players.where((player) => player.user.bot);
-  late Player self;
-  if (_self.isNotEmpty) {
-    self = _self.first;
-  } else {
-    return 0;
-  }
 
   if (self.money < 5 + state.turnManager.getIteration()) {
     return 0;
   }
 
-  switch (r) {
+  switch (self.rotation) {
     case Rotation.left:
       vec = const Point(-1, 0);
       break;
@@ -219,15 +194,15 @@ double computeBuildEfficiency(
       break;
   }
   //Клетка, в которой будем строить стену
-  var targetCells =
-      state.cellsNotifier.value.where((cell) => cell.position == p + vec);
+  var targetCells = state.cellsNotifier.value
+      .where((cell) => cell.position == self.position + vec);
 
   if (targetCells.isEmpty) {
     return 0;
   }
   var targetCell = targetCells.first;
 
-  var baseLength = calculatePathLenghtToCenter(p, state);
+  var baseLength = calculatePathLenghtToCenter(self.position, state);
 
   var _state = GameState();
   _state.cellsNotifier = state.cellsNotifier;
@@ -236,13 +211,15 @@ double computeBuildEfficiency(
   _state.playerManager = state.playerManager;
   _state.turnManager = state.turnManager;
 
-  if (targetCell.isAlive && targetCell.entity == null && targetCell.team == t) {
-    _state.entityManager.entities.add(Wall(targetCell.position, t));
+  if (targetCell.isAlive &&
+      targetCell.entity == null &&
+      targetCell.team == self.team) {
+    _state.entityManager.entities.add(Wall(targetCell.position, self.team));
   } else {
     return 0;
   }
 
-  if (baseLength < calculatePathLenghtToCenter(p, _state)) {
+  if (baseLength < calculatePathLenghtToCenter(self.position, _state)) {
     return -1 / 3;
   }
 
@@ -276,8 +253,7 @@ double computeMoveLeftEfficiency(Player self, GameState state) {
     var _position = Point(self.position.x - 1, self.position.y);
     return _computeMoveEfficiency(self, _position, state);
   }
-  return efficiencyOfBeingInPoint(
-      self.position, self.rotation, self.team, state);
+  return efficiencyOfBeingInPoint(self, state);
 }
 
 double computeMoveUpEfficiency(Player self, GameState state) {
@@ -285,8 +261,7 @@ double computeMoveUpEfficiency(Player self, GameState state) {
     var _position = Point(self.position.x, self.position.y - 1);
     return _computeMoveEfficiency(self, _position, state);
   }
-  return efficiencyOfBeingInPoint(
-      self.position, self.rotation, self.team, state);
+  return efficiencyOfBeingInPoint(self, state);
 }
 
 double computeMoveRightEfficiency(Player self, GameState state) {
@@ -294,8 +269,7 @@ double computeMoveRightEfficiency(Player self, GameState state) {
     var _position = Point(self.position.x + 1, self.position.y);
     return _computeMoveEfficiency(self, _position, state);
   }
-  return efficiencyOfBeingInPoint(
-      self.position, self.rotation, self.team, state);
+  return efficiencyOfBeingInPoint(self, state);
 }
 
 double computeMoveDownEfficiency(Player self, GameState state) {
@@ -303,22 +277,19 @@ double computeMoveDownEfficiency(Player self, GameState state) {
     var _position = Point(self.position.x, self.position.y + 1);
     return _computeMoveEfficiency(self, _position, state);
   }
-  return efficiencyOfBeingInPoint(
-      self.position, self.rotation, self.team, state);
+  return efficiencyOfBeingInPoint(self, state);
 }
 
 double _computeMoveEfficiency(
     Player self, Point<int> _position, GameState state) {
   List<Entity> entities = self.getEntities();
   if (entities.where((e) => e.position == _position).isNotEmpty) {
-    return efficiencyOfBeingInPoint(
-        self.position, self.rotation, self.team, state);
+    return efficiencyOfBeingInPoint(self, state);
   }
   if (state.cellsNotifier.value
       .where((c) => !c.isAlive && c.position == _position)
       .isNotEmpty) {
-    return efficiencyOfBeingInPoint(
-        self.position, self.rotation, self.team, state);
+    return efficiencyOfBeingInPoint(self, state);
   }
   var captured = 0;
   if (state.cellsNotifier.value
@@ -328,10 +299,13 @@ double _computeMoveEfficiency(
       self.team) {
     captured++;
   }
+  final deltaDistance = calculatePathLenghtToCenter(self.position, state) -
+      calculatePathLenghtToCenter(_position, state);
+  final centerCoeff = deltaDistance > 0 ? 1 / 6 : -1 / 6;
   //После перемещения учитываем порядок игроков
-  return efficiencyOfBeingInPoint(
-          _position, self.rotation, self.team, state, true) +
-      captured / 3;
+  return efficiencyOfBeingInPoint(self, state, true) +
+      captured / 3 +
+      centerCoeff;
 }
 
 int calculatePathLenghtToCenter(Point<int> p, GameState state) {
@@ -403,17 +377,9 @@ void pathTrace(GameState state, Point<int> _position, Point<int> center,
   }
 }
 
-double calculateWeightOfRecievedDamage(Point p, GameState state,
+double calculateWeightOfRecievedDamage(Player self, Point p, GameState state,
     [bool order = false]) {
   late Iterable<Player> players;
-
-  var _self = state.playerManager.players.where((player) => player.user.bot);
-  late Player self;
-  if (_self.isNotEmpty) {
-    self = _self.first;
-  } else {
-    return 0;
-  }
 
   if (order) {
     players = state.playerManager.players.where((p) => p != self).where((p) =>
@@ -509,11 +475,10 @@ double checkIfEdge(Point p, GameState state) {
   return 0;
 }
 
-double efficiencyOfBeingInPoint(
-    Point<int> p, Rotation r, Team t, GameState state,
+double efficiencyOfBeingInPoint(Player self, GameState state,
     [bool order = false]) {
-  return checkIfEdge(p, state) +
-      calculateWeightOfRecievedDamage(p, state, order) +
-      computeBuildEfficiency(p, r, t, state) +
-      computeShootEfficiency(p, r, t, state);
+  return checkIfEdge(self.position, state) +
+      calculateWeightOfRecievedDamage(self, self.position, state, order) +
+      computeBuildEfficiency(self, state) +
+      computeShootEfficiency(self, state);
 }

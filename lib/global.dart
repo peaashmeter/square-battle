@@ -55,7 +55,7 @@ class GameState {
     isStartingGame = false;
   }
 
-  resetGame() {
+  void resetGame() {
     const numberOfHoles = 4;
 
     List<int> holes = [];
