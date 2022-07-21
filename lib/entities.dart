@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:nyxx/nyxx.dart';
 
+import 'ai/ai.dart';
 import 'cell.dart';
 import 'main.dart';
 import 'team.dart';
@@ -269,7 +270,7 @@ class Player extends Entity {
 
   void buildWall() {
     var cost = Wall.cost + state.turnManager.getIteration();
-    var targetCellPoint = _getPointedCell();
+    var targetCellPoint = getPointedCell();
     if (targetCellPoint == null) return;
     if (money - cost < 0) return;
 
@@ -285,7 +286,7 @@ class Player extends Entity {
     }
   }
 
-  Point<int>? _getPointedCell() {
+  Point<int>? getPointedCell() {
     switch (rotation) {
       case Rotation.left:
         if (position.x > 0) {

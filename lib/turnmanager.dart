@@ -1,4 +1,5 @@
-import 'package:flutter_battle/bot.dart';
+import 'package:flutter_battle/ai/ai.dart';
+import 'package:flutter_battle/bot/bot.dart';
 import 'package:flutter_battle/cell.dart';
 import 'package:flutter_battle/entities.dart';
 import 'package:flutter_battle/global.dart';
@@ -82,6 +83,10 @@ class TurnManager {
 
     //в этот момент надо удалить старое сообщение с информацией и прислать новое, чтобы оно всегда было внизу истории сообщений
     resendGameMessage();
+
+    if (isPlaying) {
+      scheduleBotsActions();
+    }
   }
 
   void handleCells(List<Cell> cells) {
@@ -162,5 +167,6 @@ class TurnManager {
       cells[linearPos].team = player.team;
     }
     state.cellsNotifier.value = cells;
+    scheduleBotsActions();
   }
 }

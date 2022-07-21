@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_battle/bot.dart';
+import 'package:flutter_battle/bot/bot.dart';
 import 'package:flutter_battle/entities.dart';
 import 'package:flutter_battle/global.dart';
 import 'package:flutter_battle/main.dart';
