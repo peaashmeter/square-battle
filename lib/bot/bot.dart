@@ -46,7 +46,7 @@ void runBot(String token) {
   // Listen for message events
   bot.eventsWs.onMessageReceived.listen((e) async {
     try {
-      if (e.message.content == "!squarebattle") {
+      if (e.message.content.startsWith('!squarebattle')) {
         if (state.isStartingGame) {
           await e.message.channel
               .sendMessage(MessageBuilder.content('Игра уже начинается!'));
@@ -59,6 +59,17 @@ void runBot(String token) {
         }
         participants = {};
 
+        //парсим количество ботов
+        var regex = RegExp(r'-b (\d*)');
+        var bots = 0;
+        var botsparam = regex.allMatches(e.message.content);
+        if (botsparam.isNotEmpty) {
+          bots = int.tryParse(botsparam.first.group(1) ?? '') ?? 0;
+          if (bots >= 8) {
+            bots = 8;
+          }
+        }
+
         final msg = await e.message.channel.sendMessage(MessageBuilder.content(
             '${e.message.author.username} начал игру! Выберите цвет, чтобы присоединиться.'));
 
@@ -68,13 +79,14 @@ void runBot(String token) {
 
         state.isStartingGame = true;
 
-        // ---- Бот
-        Future.delayed(const Duration(milliseconds: 2000), () {
-          addBot(participants, msg);
-        }).then(
-            (value) => Future.delayed(const Duration(milliseconds: 2000), () {
-                  addBot(participants, msg);
-                }));
+        // ---- Боты
+
+        for (var i = 0; i < bots; i++) {
+          Future.delayed(const Duration(milliseconds: 666), () {
+            addBot(participants, msg);
+          });
+          await Future.delayed(const Duration(milliseconds: 666));
+        }
 
         // ----
 
@@ -260,6 +272,8 @@ void getHelp(IMessageReceivedEvent e) {
 ❤ – восстановить 1 единицу здоровья (10 + 5 за каждую дополнительную единицу здоровья).
 🚫 – отменить выбранные действия и готовность завершить ход.
 
+Чтобы изменить количество ботов, участвующих в игре, начинайте игру командой !squarebatlle -b [количество ботов]
+
 Подписывайтесь на дискорд https://discord.gg/9Sg3GDzmQg и ютуб https://www.youtube.com/channel/UCvb-2jADopGlMKM96qrfKjw создателя!
 '''));
 }
@@ -419,7 +433,7 @@ void scheduleBotsActions() {
   for (var bot in state.playerManager.players) {
     if (bot.user.bot) {
       if (!bot.isTurnMade) {
-        Future.delayed(Duration(milliseconds: Random().nextInt(3000) + 3000),
+        Future.delayed(Duration(milliseconds: Random().nextInt(5000) + 2000),
             () async {
           bot.action = getAction(state, bot);
           bot.rotationAction = getRotationAction(state, bot);
