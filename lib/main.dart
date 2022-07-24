@@ -10,6 +10,8 @@ import 'package:screenshot/screenshot.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_size/window_size.dart';
 
+import 'game.dart';
+
 ///ключ для скриншотов
 // late GlobalKey key;
 
@@ -24,13 +26,13 @@ late double? xSize;
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  if (Platform.isWindows) {
-    DesktopWindow.setWindowSize(const Size(512, 512 + 30));
-    DesktopWindow.setMinWindowSize(const Size(512, 512 + 30));
-    DesktopWindow.setMaxWindowSize(const Size(512, 512 + 30));
+  // if (Platform.isWindows) {
+  //   DesktopWindow.setWindowSize(const Size(512, 512 + 30));
+  //   DesktopWindow.setMinWindowSize(const Size(512, 512 + 30));
+  //   DesktopWindow.setMaxWindowSize(const Size(512, 512 + 30));
 
-    setWindowTitle('SquareBattle');
-  }
+  //   setWindowTitle('SquareBattle');
+  // }
 
   //для no-token версии здесь необходимо указать токен бота на сервере
   const token = '';

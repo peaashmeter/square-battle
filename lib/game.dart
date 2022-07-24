@@ -43,7 +43,11 @@ class _GameState extends State<Game> {
               ),
             )
           : null,
-      body: const GameGrid(),
+      body: const OverflowBox(
+        child: UnconstrainedBox(
+          child: GameGrid(),
+        ),
+      ),
     );
   }
 }
@@ -76,6 +80,8 @@ class _GameGridState extends State<GameGrid> {
             return Screenshot(
               controller: screenshotController,
               child: SizedBox(
+                width: 512,
+                height: 512,
                 child: Stack(
                   children: [
                     Container(
