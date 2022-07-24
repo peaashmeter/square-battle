@@ -55,13 +55,16 @@ class TurnManager {
     }
 
     if (isPlaying) {
+      checkIfGameEnded();
+      if (!isPlaying) {
+        return;
+      }
       turn++;
       doGameCycle();
     }
   }
 
   void doGameCycle() {
-    checkIfGameEnded();
     var size = getSize();
 
     var cells = List<Cell>.from(state.cellsNotifier.value);
