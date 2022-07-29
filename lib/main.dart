@@ -24,9 +24,9 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   if (Platform.isWindows) {
-    DesktopWindow.setWindowSize(const Size(512, 512 + 30));
-    DesktopWindow.setMinWindowSize(const Size(512, 512 + 30));
-    DesktopWindow.setMaxWindowSize(const Size(512, 512 + 30));
+    // DesktopWindow.setWindowSize(const Size(512, 512 + 30));
+    // DesktopWindow.setMinWindowSize(const Size(512, 512 + 30));
+    // DesktopWindow.setMaxWindowSize(const Size(512, 512 + 30));
 
     setWindowTitle('SquareBattle');
   }

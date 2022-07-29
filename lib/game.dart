@@ -31,7 +31,7 @@ class _GameState extends State<Game> {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    xSize = MediaQuery.of(context).size.width;
+    xSize = 512;
     return Scaffold(
       appBar: Platform.isAndroid
           ? AppBar(
@@ -42,7 +42,7 @@ class _GameState extends State<Game> {
               ),
             )
           : null,
-      body: const GameGrid(),
+      body: const OverflowBox(child: UnconstrainedBox(child: GameGrid())),
     );
   }
 }
@@ -75,6 +75,8 @@ class _GameGridState extends State<GameGrid> {
             return Screenshot(
               controller: screenshotController,
               child: SizedBox(
+                width: 512,
+                height: 512,
                 child: Stack(
                   children: [
                     Container(
