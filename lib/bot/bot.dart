@@ -105,6 +105,14 @@ void runBot(String token) {
             () => msg.createReaction(UnicodeEmoji('🟫')));
         await Future.delayed(const Duration(milliseconds: 500),
             () => msg.createReaction(UnicodeEmoji('⬜')));
+
+        //через 2 минуты регистрация отменяется
+        Future.delayed(const Duration(seconds: 20), () {
+          state.turnManager.isPlaying = false;
+          state.resetGame();
+          e.message.channel.sendMessage(
+              MessageBuilder.content('Регистрация на игру отменена!'));
+        });
       } else if (e.message.content == "!start") {
         if (e.message.author.id.id != gameInitiatorId) {
           e.message.channel.sendMessage(
