@@ -107,7 +107,7 @@ void runBot(String token) {
             () => msg.createReaction(UnicodeEmoji('⬜')));
 
         //через 2 минуты регистрация отменяется
-        Future.delayed(const Duration(seconds: 20), () {
+        Future.delayed(const Duration(minutes: 2), () {
           state.turnManager.isPlaying = false;
           state.resetGame();
           e.message.channel.sendMessage(
