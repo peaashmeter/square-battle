@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:math';
 
 import 'package:flutter_battle/ai/ai.dart';
@@ -10,9 +11,11 @@ import 'package:flutter_battle/patchnote.dart';
 
 import 'package:flutter_battle/team.dart';
 import 'package:flutter_battle/turnmanager.dart';
+import 'package:image/image.dart';
 
 import 'package:nyxx/nyxx.dart';
 import 'package:nyxx_interactions/nyxx_interactions.dart';
+import 'package:path_provider/path_provider.dart';
 
 void runBot(String token) {
   final bot =
@@ -255,7 +258,7 @@ void onReactionRemove(IUser user, IMessageReactionEvent event,
     state.turnManager.updateCells();
   }
 
-  var string = 'Тестирование системы регистрации на игру\n\n';
+  var string = 'Началась регистрация на участие в игре SquareBattle!\n\n';
 
   for (var p in participants.entries) {
     string += '${p.value.formatForMessage()} ${p.key.username}\n';
@@ -377,6 +380,26 @@ String formatGameMessage() {
   }
 
   return gameMessageString;
+}
+
+void sendAnimationOfTheGame() async {
+  final turn = state.turnManager.turn;
+  final directory = await getApplicationDocumentsDirectory();
+
+  final encoder = GifEncoder();
+  for (var i = 1; i <= turn; i++) {
+    final List<int> bytes =
+        await File('${directory.path}/turn$i.png').readAsBytes();
+
+    encoder.addFrame(decodePng(bytes)!, duration: 100);
+  }
+
+  final gif = encoder.finish() ?? [];
+  final file = await (await File('${directory.path}\\game.gif').create())
+      .writeAsBytes(gif);
+
+  final channel = state.gameMessage?.channel;
+  await channel?.sendMessage(MessageBuilder.empty()..addFileAttachment(file));
 }
 
 Future<void> buttonHandler(IButtonInteractionEvent event) async {

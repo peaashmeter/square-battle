@@ -107,12 +107,6 @@ class _GameGridState extends State<GameGrid> {
 }
 
 Future<File> takeScreenshot() async {
-  // RenderRepaintBoundary boundary =
-  //     key.currentContext?.findRenderObject() as RenderRepaintBoundary;
-
-  // ui.Image image = await boundary.toImage();
-  // var byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-
   var directory = await getApplicationDocumentsDirectory();
   var file = await File('${directory.path}/turn${state.turnManager.turn}.png')
       .create();

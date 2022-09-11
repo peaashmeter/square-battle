@@ -49,7 +49,7 @@ void Function()? getAction(GameState state, Player self) {
 
   var sortedmax = sorted.where((e) => e.value == max).toList();
 
-  print(sortedmax);
+  //print(sortedmax);
 
   return sortedmax[Random().nextInt(sortedmax.length)].key;
 }
@@ -69,6 +69,8 @@ void Function()? getRotationAction(GameState state, Player self) {
 
   var max = sorted.first.value;
 
+  //print(sorted);
+
   var sortedmax = sorted.where((e) => e.value == max).toList();
 
   return sortedmax[Random().nextInt(sortedmax.length)].key;
@@ -80,7 +82,9 @@ double computeLeftRotationEfficiency(GameState state, Player self) {
   index %= 4;
   var rotation = Rotation.values[index];
 
-  return efficiencyOfBeingInPoint(self, state);
+  return efficiencyOfBeingInPoint(
+      Player(self.position, self.team, rotation, self.user)..money = self.money,
+      state);
 }
 
 double computeRightRotationEfficiency(GameState state, Player self) {
@@ -89,7 +93,9 @@ double computeRightRotationEfficiency(GameState state, Player self) {
   index %= 4;
   var rotation = Rotation.values[index];
 
-  return efficiencyOfBeingInPoint(self, state);
+  return efficiencyOfBeingInPoint(
+      Player(self.position, self.team, rotation, self.user)..money = self.money,
+      state);
 }
 
 double computeNoRotationEfficiency(GameState state, Player self) {
@@ -303,7 +309,8 @@ double _computeMoveEfficiency(
       calculatePathLenghtToCenter(self, state);
   final centerCoeff = deltaDistance > 0 ? 1 / 6 : -1 / 6;
   //После перемещения учитываем порядок игроков
-  return efficiencyOfBeingInPoint(self, state, true) +
+  return efficiencyOfBeingInPoint(
+          Player(_position, self.team, self.rotation, self.user), state, true) +
       captured / 3 +
       centerCoeff;
 }
@@ -464,6 +471,19 @@ double calculateWeightOfRecievedDamage(Player self, Point p, GameState state,
 }
 
 double checkIfEdge(Point p, GameState state) {
+  if (state.turnManager.turn < 30 && state.turnManager.turn % 10 == 8) {
+    if (p.x == 0 + state.turnManager.getIteration() &&
+            p.y == 0 + state.turnManager.getIteration() ||
+        p.x == 0 + state.turnManager.getIteration() &&
+            p.y == 8 - state.turnManager.getIteration() ||
+        p.x == 8 - state.turnManager.getIteration() &&
+            p.y == 0 + state.turnManager.getIteration() ||
+        p.x == 8 - state.turnManager.getIteration() &&
+            p.y == 8 - state.turnManager.getIteration()) {
+      return -1e6;
+    }
+  }
+
   if (state.turnManager.turn < 30 && state.turnManager.turn % 10 == 9) {
     if (p.x == 0 + state.turnManager.getIteration() ||
         p.x == 8 - state.turnManager.getIteration() ||

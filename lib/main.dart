@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:desktop_window/desktop_window.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_battle/game.dart';
 import 'package:flutter_battle/global.dart';
 import 'package:flutter_battle/gui.dart';
 
@@ -35,5 +36,9 @@ void main() async {
 
   var prefs = await SharedPreferences.getInstance();
 
-  runApp(Menu(prefs));
+  runApp(MaterialApp(
+    home: Scaffold(
+        body: Game(
+            'OTc1MjA3NjAwNjcxMDMxMzM2.GKQ3iU.mw7rToFX7LoQgcmtiyKqeANSo_8EATGjUzp0gU')),
+  ));
 }

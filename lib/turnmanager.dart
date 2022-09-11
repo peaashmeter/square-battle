@@ -98,10 +98,15 @@ class TurnManager {
   void checkIfGameEnded() {
     if (turn == gameLength) {
       isPlaying = false;
+      Future.delayed(
+          const Duration(seconds: 1), (() => sendAnimationOfTheGame()));
+
       Future.delayed(const Duration(seconds: 10), (() => state.resetGame()));
     }
     if (state.playerManager.players.where((p) => p.isAlive).length == 1) {
       isPlaying = false;
+      Future.delayed(
+          const Duration(seconds: 1), (() => sendAnimationOfTheGame()));
       Future.delayed(const Duration(seconds: 10), (() => state.resetGame()));
     }
   }
