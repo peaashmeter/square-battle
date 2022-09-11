@@ -36,9 +36,7 @@ void main() async {
 
   var prefs = await SharedPreferences.getInstance();
 
-  runApp(MaterialApp(
-    home: Scaffold(
-        body: Game(
-            'OTc1MjA3NjAwNjcxMDMxMzM2.GKQ3iU.mw7rToFX7LoQgcmtiyKqeANSo_8EATGjUzp0gU')),
-  ));
+  runApp(
+    Menu(prefs),
+  );
 }
