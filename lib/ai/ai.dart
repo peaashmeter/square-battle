@@ -1,10 +1,8 @@
 import 'dart:math';
 
-import 'package:flutter_battle/cell.dart';
 import 'package:flutter_battle/entities.dart';
 import 'package:flutter_battle/entitymanager.dart';
 import 'package:flutter_battle/global.dart';
-import 'package:flutter_battle/team.dart';
 
 void Function()? getAction(GameState state, Player self) {
   var shootEfficiency = computeShootEfficiency(self, state) +
@@ -45,7 +43,7 @@ void Function()? getAction(GameState state, Player self) {
     ..sort(((a, b) => b.value.compareTo(a.value)));
   var max = sorted.first.value;
 
-  print('sorted : ${sorted}');
+  print('sorted : $sorted');
 
   var sortedmax = sorted.where((e) => e.value == max).toList();
 
@@ -210,29 +208,29 @@ double computeBuildEfficiency(Player self, GameState state) {
 
   var baseLength = calculatePathLenghtToCenter(self, state);
 
-  var _state = GameState();
-  _state.cellsNotifier = state.cellsNotifier;
-  _state.entityManager = EntityManager()
+  var state0 = GameState();
+  state0.cellsNotifier = state.cellsNotifier;
+  state0.entityManager = EntityManager()
     ..entities = List.from(state.entityManager.entities);
-  _state.playerManager = state.playerManager;
-  _state.turnManager = state.turnManager;
+  state0.playerManager = state.playerManager;
+  state0.turnManager = state.turnManager;
 
   if (targetCell.isAlive &&
       targetCell.entity == null &&
       targetCell.team == self.team) {
-    _state.entityManager.entities.add(Wall(targetCell.position, self.team));
+    state0.entityManager.entities.add(Wall(targetCell.position, self.team));
   } else {
     return 0;
   }
 
-  if (baseLength < calculatePathLenghtToCenter(self, _state)) {
+  if (baseLength < calculatePathLenghtToCenter(self, state0)) {
     return -1 / 3;
   }
 
   for (var player in state.playerManager.players.where((p) => p != self)) {
     var baseLength = calculatePathLenghtToCenter(player, state);
 
-    var newLength = calculatePathLenghtToCenter(player, _state);
+    var newLength = calculatePathLenghtToCenter(player, state0);
 
     if (baseLength < newLength) {
       return 2 / 3;
@@ -256,50 +254,50 @@ double computeHealEfficiency(Player self, GameState state) {
 
 double computeMoveLeftEfficiency(Player self, GameState state) {
   if (self.position.x != 0) {
-    var _position = Point(self.position.x - 1, self.position.y);
-    return _computeMoveEfficiency(self, _position, state);
+    var position = Point(self.position.x - 1, self.position.y);
+    return _computeMoveEfficiency(self, position, state);
   }
   return efficiencyOfBeingInPoint(self, state);
 }
 
 double computeMoveUpEfficiency(Player self, GameState state) {
   if (self.position.y != 0) {
-    var _position = Point(self.position.x, self.position.y - 1);
-    return _computeMoveEfficiency(self, _position, state);
+    var position = Point(self.position.x, self.position.y - 1);
+    return _computeMoveEfficiency(self, position, state);
   }
   return efficiencyOfBeingInPoint(self, state);
 }
 
 double computeMoveRightEfficiency(Player self, GameState state) {
   if (self.position.x + 1 < state.turnManager.getSize()) {
-    var _position = Point(self.position.x + 1, self.position.y);
-    return _computeMoveEfficiency(self, _position, state);
+    var position = Point(self.position.x + 1, self.position.y);
+    return _computeMoveEfficiency(self, position, state);
   }
   return efficiencyOfBeingInPoint(self, state);
 }
 
 double computeMoveDownEfficiency(Player self, GameState state) {
   if (self.position.y + 1 < state.turnManager.getSize()) {
-    var _position = Point(self.position.x, self.position.y + 1);
-    return _computeMoveEfficiency(self, _position, state);
+    var position = Point(self.position.x, self.position.y + 1);
+    return _computeMoveEfficiency(self, position, state);
   }
   return efficiencyOfBeingInPoint(self, state);
 }
 
 double _computeMoveEfficiency(
-    Player self, Point<int> _position, GameState state) {
+    Player self, Point<int> position, GameState state) {
   List<Entity> entities = self.getEntities();
-  if (entities.where((e) => e.position == _position).isNotEmpty) {
+  if (entities.where((e) => e.position == position).isNotEmpty) {
     return efficiencyOfBeingInPoint(self, state);
   }
   if (state.cellsNotifier.value
-      .where((c) => !c.isAlive && c.position == _position)
+      .where((c) => !c.isAlive && c.position == position)
       .isNotEmpty) {
     return efficiencyOfBeingInPoint(self, state);
   }
   var captured = 0;
   if (state.cellsNotifier.value
-          .where((c) => c.position == _position)
+          .where((c) => c.position == position)
           .first
           .team !=
       self.team) {
@@ -310,7 +308,7 @@ double _computeMoveEfficiency(
   final centerCoeff = deltaDistance > 0 ? 1 / 6 : -1 / 6;
   //После перемещения учитываем порядок игроков
   return efficiencyOfBeingInPoint(
-          Player(_position, self.team, self.rotation, self.user), state, true) +
+          Player(position, self.team, self.rotation, self.user), state, true) +
       captured / 3 +
       centerCoeff;
 }
@@ -333,26 +331,26 @@ int calculatePathLenghtToCenter(Player self, GameState state) {
 
     //MoveRight
     if (pos.x + 1 < state.turnManager.getSize()) {
-      var _position = Point(pos.x + 1, pos.y);
-      pathTrace(state, self, _position, center, nextPoss);
+      var position = Point(pos.x + 1, pos.y);
+      pathTrace(state, self, position, center, nextPoss);
     }
 
     //MoveLeft
     if (pos.x != 0) {
-      var _position = Point(pos.x - 1, pos.y);
-      pathTrace(state, self, _position, center, nextPoss);
+      var position = Point(pos.x - 1, pos.y);
+      pathTrace(state, self, position, center, nextPoss);
     }
 
     //MoveDown
     if (pos.y != 0) {
-      var _position = Point(pos.x, pos.y - 1);
-      pathTrace(state, self, _position, center, nextPoss);
+      var position = Point(pos.x, pos.y - 1);
+      pathTrace(state, self, position, center, nextPoss);
     }
 
     //MoveUp
     if (pos.y + 1 < state.turnManager.getSize()) {
-      var _position = Point(pos.x, pos.y + 1);
-      pathTrace(state, self, _position, center, nextPoss);
+      var position = Point(pos.x, pos.y + 1);
+      pathTrace(state, self, position, center, nextPoss);
     }
 
     nextPoss.sort((a, b) => getLength(a).compareTo(getLength(b)));
@@ -370,17 +368,17 @@ int calculatePathLenghtToCenter(Player self, GameState state) {
   return length;
 }
 
-void pathTrace(GameState state, Player self, Point<int> _position,
+void pathTrace(GameState state, Player self, Point<int> position,
     Point<int> center, List<Point<int>> nextPoss) {
   List<Entity> entities = self.getEntities();
-  if (_position == center) {
-    nextPoss.add(_position);
-  } else if (entities.where((e) => e.position == _position).isNotEmpty) {
+  if (position == center) {
+    nextPoss.add(position);
+  } else if (entities.where((e) => e.position == position).isNotEmpty) {
   } else if (state.cellsNotifier.value
-      .where((c) => !c.isAlive && c.position == _position)
+      .where((c) => !c.isAlive && c.position == position)
       .isNotEmpty) {
   } else {
-    nextPoss.add(_position);
+    nextPoss.add(position);
   }
 }
 
@@ -430,9 +428,6 @@ double calculateWeightOfRecievedDamage(Player self, Point p, GameState state,
               .isEmpty) {
         break;
       }
-      var cell = state.cellsNotifier.value
-          .where((c) => c.position == currentPoint)
-          .first;
       if (state.playerManager.players
           .where((p) => p.position == currentPoint && p.isAlive)
           .isNotEmpty) {
@@ -441,10 +436,6 @@ double calculateWeightOfRecievedDamage(Player self, Point p, GameState state,
           .whereType<Wall>()
           .where((p) => p.position == currentPoint)
           .isNotEmpty) {
-        var wall = state.entityManager.entities
-            .whereType<Wall>()
-            .where((p) => p.position == currentPoint)
-            .first;
         break;
       } else {
         if (currentPoint == p) {

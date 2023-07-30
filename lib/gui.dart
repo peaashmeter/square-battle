@@ -132,15 +132,15 @@ class _MiddlePanelState extends State<MiddlePanel> {
             ],
           ),
         ),
-        Padding(
-          padding: const EdgeInsets.all(16.0),
+        const Padding(
+          padding: EdgeInsets.all(16.0),
           child: Card(
               color: Colors.blueGrey,
               elevation: 10,
               child: Padding(
-                padding: const EdgeInsets.all(8.0),
+                padding: EdgeInsets.all(8.0),
                 child: Column(
-                  children: const [
+                  children: [
                     Text(
                       'Список команд:',
                       style: TextStyle(fontWeight: FontWeight.bold),

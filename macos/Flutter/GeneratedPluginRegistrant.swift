@@ -6,8 +6,8 @@ import FlutterMacOS
 import Foundation
 
 import desktop_window
-import path_provider_macos
-import shared_preferences_macos
+import path_provider_foundation
+import shared_preferences_foundation
 import url_launcher_macos
 import window_size
 

@@ -443,7 +443,12 @@ void sendAnimationOfTheGame() async {
     final List<int> bytes =
         await File('${directory.path}/turn$i.png').readAsBytes();
 
-    encoder.addFrame(decodePng(bytes)!, duration: 100);
+    try {
+      encoder.addFrame(decodePng(bytes)!, duration: 100);
+    } catch (e) {
+      print(e);
+      continue;
+    }
   }
 
   final gif = encoder.finish() ?? [];
@@ -610,8 +615,12 @@ Future<MessageBuilder> createKeyboard([bool appendScreenshot = true]) async {
 
   var cancelButton = ButtonBuilder('', 'cancel', ButtonStyle.secondary)
     ..emoji = UnicodeEmoji('🚫');
-  var none2Button =
-      ButtonBuilder(' ', 'none2', ButtonStyle.secondary, disabled: true);
+  var none2Button = ButtonBuilder(
+    '*',
+    'none2',
+    ButtonStyle.secondary,
+    disabled: true,
+  );
 
   var skipButton = ButtonBuilder(
     '',

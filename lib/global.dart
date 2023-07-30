@@ -2,10 +2,8 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_battle/cell.dart';
-import 'package:flutter_battle/entities.dart';
 import 'package:flutter_battle/playermanager.dart';
 import 'package:flutter_battle/turnmanager.dart';
-import 'package:flutter_battle/team.dart';
 import 'package:nyxx/nyxx.dart';
 
 import 'entitymanager.dart';

@@ -1,8 +1,6 @@
-import 'package:flutter_battle/ai/ai.dart';
 import 'package:flutter_battle/bot/bot.dart';
 import 'package:flutter_battle/cell.dart';
 import 'package:flutter_battle/entities.dart';
-import 'package:flutter_battle/global.dart';
 
 import 'main.dart';
 

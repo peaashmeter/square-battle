@@ -68,7 +68,6 @@ class BotUser extends IUser {
   @override
   int get hashCode => id.hashCode;
 
-  @override
   // TODO: implement accentColor
   DiscordColor? get accentColor => throw UnimplementedError();
 
@@ -77,20 +76,8 @@ class BotUser extends IUser {
   String? get avatar => throw UnimplementedError();
 
   @override
-  String avatarURL({String format = "webp", int size = 128}) {
-    // TODO: implement avatarURL
-    throw UnimplementedError();
-  }
-
-  @override
   // TODO: implement bannerHash
   String? get bannerHash => throw UnimplementedError();
-
-  @override
-  String? bannerUrl({String? format, int? size}) {
-    // TODO: implement bannerUrl
-    throw UnimplementedError();
-  }
 
   @override
   // TODO: implement bot
@@ -149,4 +136,35 @@ class BotUser extends IUser {
   @override
   // TODO: implement userFlags
   IUserFlags? get userFlags => throw UnimplementedError();
+
+  @override
+  // TODO: implement avatarDecorationHash
+  String? get avatarDecorationHash => throw UnimplementedError();
+
+  @override
+  String avatarUrl({String format = 'webp', int? size, bool animated = false}) {
+    // TODO: implement avatarUrl
+    throw UnimplementedError();
+  }
+
+  @override
+  // TODO: implement globalName
+  String? get globalName => throw UnimplementedError();
+
+  @override
+  // TODO: implement isInteractionWebhook
+  bool get isInteractionWebhook => throw UnimplementedError();
+
+  @override
+  String? bannerUrl(
+      {String format = 'webp', int? size, bool animated = false}) {
+    // TODO: implement bannerUrl
+    throw UnimplementedError();
+  }
+
+  @override
+  String? avatarDecorationUrl({int? size}) {
+    // TODO: implement avatarDecorationUrl
+    throw UnimplementedError();
+  }
 }

@@ -1,7 +1,6 @@
 import 'dart:math';
 
 import 'package:flutter_battle/entities.dart';
-import 'package:flutter_battle/global.dart';
 import 'package:flutter_battle/team.dart';
 import 'package:nyxx/nyxx.dart';
 

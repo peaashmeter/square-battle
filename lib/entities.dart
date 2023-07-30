@@ -3,7 +3,6 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:nyxx/nyxx.dart';
 
-import 'ai/ai.dart';
 import 'cell.dart';
 import 'main.dart';
 import 'team.dart';
@@ -81,65 +80,65 @@ class Player extends Entity {
 
   void moveRight() {
     if (position.x + 1 < state.turnManager.getSize()) {
-      var _position = Point(position.x + 1, position.y);
+      var position_ = Point(position.x + 1, position.y);
       List<Entity> entities = getEntities();
-      if (entities.where((e) => e.position == _position).isNotEmpty) {
+      if (entities.where((e) => e.position == position_).isNotEmpty) {
         return;
       }
       if (state.cellsNotifier.value
-          .where((c) => !c.isAlive && c.position == _position)
+          .where((c) => !c.isAlive && c.position == position_)
           .isNotEmpty) {
         return;
       }
-      position = _position;
+      position = position_;
     }
   }
 
   void moveLeft() {
     if (position.x != 0) {
-      var _position = Point(position.x - 1, position.y);
+      var position_ = Point(position.x - 1, position.y);
       List<Entity> entities = getEntities();
-      if (entities.where((e) => e.position == _position).isNotEmpty) {
+      if (entities.where((e) => e.position == position_).isNotEmpty) {
         return;
       }
       if (state.cellsNotifier.value
-          .where((c) => !c.isAlive && c.position == _position)
+          .where((c) => !c.isAlive && c.position == position_)
           .isNotEmpty) {
         return;
       }
-      position = _position;
+      position = position_;
     }
   }
 
   void moveUp() {
     if (position.y != 0) {
-      var _position = Point(position.x, position.y - 1);
+      var position_ = Point(position.x, position.y - 1);
       List<Entity> entities = getEntities();
-      if (entities.where((e) => e.position == _position).isNotEmpty) {
+      if (entities.where((e) => e.position == position_).isNotEmpty) {
         return;
       }
       if (state.cellsNotifier.value
-          .where((c) => !c.isAlive && c.position == _position)
+          .where((c) => !c.isAlive && c.position == position_)
           .isNotEmpty) {
         return;
       }
-      position = _position;
+      position = position_;
     }
   }
 
   void moveDown() {
     if (position.y + 1 < state.turnManager.getSize()) {
-      var _position = Point(position.x, position.y + 1);
+      var position_ = Point(position.x, position.y + 1);
       List<Entity> entities = getEntities();
-      if (entities.where((e) => e.position == _position).isNotEmpty) {
+      if (entities.where((e) => e.position == position_).isNotEmpty) {
         return;
       }
       if (state.cellsNotifier.value
-          .where((c) => !c.isAlive && c.position == _position)
+          .where((c) => !c.isAlive && c.position == position_)
           .isNotEmpty) {
         return;
       }
-      position = _position;
+      position = position_;
     }
   }
 
